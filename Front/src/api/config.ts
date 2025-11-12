@@ -13,8 +13,7 @@ export const API_CONFIG = {
     USE_MOCK_DATA: false,
   
   // URL de base de l'API
-//  API_BASE_URL: 'http://localhost:8080/api',
-    API_BASE_URL: 'https://jardin.vps.ttelab.fr/api',
+    API_BASE_URL: '/api',
 
   // Timeout des requêtes (en ms)
   REQUEST_TIMEOUT: 30000,
