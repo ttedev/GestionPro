@@ -1,0 +1,106 @@
+package fr.ttelab.orgaservice_back.config;
+
+import fr.ttelab.orgaservice_back.security.CustomOidcUserService;
+import fr.ttelab.orgaservice_back.security.CustomUserDetailsService;
+import fr.ttelab.orgaservice_back.security.JwtRequestFilter;
+import fr.ttelab.orgaservice_back.security.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@Slf4j
+public class SecurityConfig {
+
+  @Value("${PRODUCTION_MODE:false}")
+  private boolean productionMode;
+
+  @Autowired
+  private CustomUserDetailsService customUserDetailsService;
+
+  @Autowired
+  private CustomOidcUserService customOidcUserService;
+
+  @Autowired
+  private JwtUtil jwtUtil;
+
+  @Bean
+  public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+    provider.setUserDetailsService(userDetailsService);
+    provider.setPasswordEncoder(passwordEncoder);
+    return provider;
+  }
+
+  @Bean
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {return config.getAuthenticationManager();}
+
+
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider authenticationProvider) throws Exception {
+    // TEMPORAIRE: Désactive la sécurité pour tester rapidement
+    http.csrf(AbstractHttpConfigurer::disable)
+
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth -> auth
+                .requestMatchers("/", "/login", "/h2-console/**","/login/oauth2/code/**","/api/oauth2/authorization/google").permitAll()
+                .requestMatchers("/index.html","/assets/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/dashboard","/clients","/clients/*","/projects","/calendar","/profile").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .anyRequest().permitAll()
+        )
+        .authenticationProvider(authenticationProvider)
+        .oauth2Login(oauth2 ->
+            oauth2
+                .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOidcUserService))
+                .successHandler((request, response, authentication) -> {
+                  OidcUser user = (OidcUser) authentication.getPrincipal();
+                  String token = jwtUtil.generateToken(user.getEmail());
+                  String redirectUrl = (productionMode ? "" : "http://localhost:8080") + "/login?token=" + token;
+                  log.info("OAuth2 {}  success redirect -> {}", user.getEmail(), redirectUrl);
+                  response.sendRedirect(redirectUrl);
+                })
+        )
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .formLogin(AbstractHttpConfigurer::disable);
+
+    http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+
+    http.addFilterBefore(new JwtRequestFilter(jwtUtil, customUserDetailsService), UsernamePasswordAuthenticationFilter.class);
+
+    http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, authException) -> {
+          response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"); // 401 Unauthorized en cas de non-authentification
+        }));
+
+
+    return http.build();
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
+}
