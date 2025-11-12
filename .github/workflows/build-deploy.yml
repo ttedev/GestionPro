@@ -79,6 +79,6 @@ jobs:
           script: |
             cd ${{ secrets.COMMAND_PATH }}
             mv jar/app.jar jar/app.jar.old
-            mv ${{ secrets.DEPLOY_PATH }}/vin-back/target/${{ env.JAR_NAME }} jar/app.jar
+            mv ${{ secrets.DEPLOY_PATH }}/Back/target/${{ env.JAR_NAME }} jar/app.jar
             echo "Restarting service..."
             ${{ secrets.REMOTE_RESTART_CMD }}
