@@ -10,7 +10,7 @@
 
 // Configuration
 
-const API_BASE_URL= 'https://jardin.vps.ttelab.fr/api',
+const API_BASE_URL= 'https://jardin.vps.ttelab.fr/api';
 
 export type EventStatus = 'unscheduled' | 'proposed' | 'confirmed' | 'completed' | 'cancelled';
 export type EventType = 'chantier' | 'rdv' | 'prospection' | 'autre'
