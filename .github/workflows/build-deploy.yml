@@ -36,7 +36,7 @@ jobs:
       - name: Prepare static directory for backend packaging
         run: |
           mkdir -p $STATIC_DIR/
-          cp -R $FRONTEND_DIR/dist/* $STATIC_DIR/
+          cp -R $FRONTEND_DIR/build/* $STATIC_DIR/
           ls -la $STATIC_DIR
 
       - name: Set up Java
