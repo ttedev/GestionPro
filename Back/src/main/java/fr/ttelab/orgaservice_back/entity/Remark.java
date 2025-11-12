@@ -35,7 +35,7 @@ public class Remark {
 
   @ElementCollection
   @CollectionTable(name = "remark_images", joinColumns = @JoinColumn(name = "remark_id"))
-  @Column(name = "image_ref", length = 1024000)
+  @Column(name = "image_ref", length = 10024000)
   private List<String> images; // base64 ou URL
 
   private LocalDateTime createdAt;
