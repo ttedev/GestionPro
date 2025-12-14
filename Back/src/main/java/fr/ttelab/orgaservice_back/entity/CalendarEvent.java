@@ -74,9 +74,33 @@ public class CalendarEvent {
   @PrePersist
   protected void onCreate() {
     createdAt = LocalDateTime.now();
-    if(dateTime != null) {
-      dayIndex = dateTime.getDayOfWeek().getValue() % 7; // Sunday=7 -> 0
-      if(dayIndex == 0) dayIndex = 0; // explicit
+    updateDayIndex();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updateDayIndex();
+  }
+
+  /**
+   * Met à jour dayIndex à partir de dateTime.
+   * Convertit le jour de la semaine Java (Lundi=1 à Dimanche=7)
+   * vers notre format (Lundi=0 à Dimanche=6).
+   */
+  private void updateDayIndex() {
+    if (dateTime == null) {
+      dayIndex = null;
+      return;
     }
+    dayIndex = convertToDayIndex(dateTime.getDayOfWeek().getValue());
+  }
+
+  /**
+   * Convertit le jour de la semaine Java (1-7) vers notre format (0-6).
+   * Java: Lundi=1, Mardi=2, ..., Dimanche=7
+   * Notre format: Lundi=0, Mardi=1, ..., Dimanche=6
+   */
+  private int convertToDayIndex(int javaDayOfWeek) {
+    return  javaDayOfWeek - 1;
   }
 }

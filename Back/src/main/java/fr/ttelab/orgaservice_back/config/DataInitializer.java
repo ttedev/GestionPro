@@ -37,8 +37,9 @@ public class DataInitializer implements CommandLineRunner {
     user.setUsername("admin@admin.admin");
     user.setPassword(passwordEncoder.encode("admin"));
     user.setEmail("admin@admin.admin");
-    UserStatus status = UserStatus.PENDING;
+    UserStatus status = UserStatus.ACTIVE ;
     user.setStatus(status);
+    user.setEndLicenseDate(LocalDateTime.now().plusDays(1).toLocalDate());
     userRepository.save(user);
 
     Client client1 = new Client();

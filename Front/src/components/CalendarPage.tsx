@@ -107,6 +107,10 @@ function DraggableAppointment({ appointment, style, onEdit, onConfirm, onStatusC
           setShowActions(!showActions);
         }
       }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onEdit(appointment);
+      }}
       className={`absolute left-1 right-1 ${colorClass} rounded p-2 text-xs overflow-hidden shadow-md hover:shadow-lg transition-all z-10 cursor-move group ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -302,13 +306,41 @@ function UnscheduledChantier({ appointment }: UnscheduledChantierProps) {
   );
 }
 
+interface UnscheduledDropZoneProps {
+  onDrop: (appointmentId: string) => void;
+  children: React.ReactNode;
+}
+
+function UnscheduledDropZone({ onDrop, children }: UnscheduledDropZoneProps) {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'appointment', // Accepte uniquement les rendez-vous du calendrier
+    drop: (item: { id: string; source?: string }) => {
+      if (item.source !== 'unscheduled') { // Ne permet pas de redéposer un élément déjà unscheduled
+        onDrop(item.id);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver() && monitor.getItem()?.source !== 'unscheduled',
+    }),
+  }));
+
+  return (
+    <div
+      ref={drop}
+      className={`transition-all ${isOver ? 'ring-2 ring-orange-400 bg-orange-100' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(0);
   const [currentDayIndex, setCurrentDayIndex] = useState(0); // Pour la navigation mobile
   const [isMobile, setIsMobile] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(false);
+  const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [unscheduledAppointments, setUnscheduledAppointments] = useState<Appointment[]>([ ]);
 
@@ -365,10 +397,16 @@ export function CalendarPage() {
       const date = currentDay.getDate();
       const month = monthNames[currentDay.getMonth()];
       
+      // Formatter la date en YYYY-MM-DD sans conversion UTC
+      const year = currentDay.getFullYear();
+      const monthNum = String(currentDay.getMonth() + 1).padStart(2, '0');
+      const dayNum = String(currentDay.getDate()).padStart(2, '0');
+      const fullDate = `${year}-${monthNum}-${dayNum}`;
+      
       days.push({
         day: dayName,
         date: `${date} ${month}`,
-        fullDate: currentDay.toISOString().split('T')[0]
+        fullDate: fullDate
       });
     }
     
@@ -398,21 +436,26 @@ export function CalendarPage() {
       // Mapper CalendarEvent vers Appointment
       const mappedAppointments: Appointment[] = calendarEvents
         .filter(event => event.date && event.startTime) // Filtrer les événements avec date et heure
-        .map((event, index) => ({
-          id: event.id, // Convertir string id en number
-          dayIndex: event.dayIndex ?? 0,
-          date: event.date ?? '',
-          startTime: event.startTime ?? '09:00',
-          duration: event.duration/60,
-          client: event.clientName,
-          type: event.title,
-          location: event.location,
-          status: event.status,
-          isRecurring: event.isRecurring,
-          eventType: event.eventType,
-          interventionId: event.interventionId ? parseInt(event.interventionId) : undefined,
-          daysSinceLastChantier: event.daysSinceLastChantier ?? undefined,
-        }));
+        .map((event, index) => {
+          // Backend et Frontend utilisent la même convention: Lundi=0, Mardi=1, ..., Dimanche=6
+          const dayIndex = event.dayIndex ?? 0;
+          
+          return {
+            id: event.id,
+            dayIndex: dayIndex,
+            date: event.date ?? '',
+            startTime: event.startTime ?? '09:00',
+            duration: event.duration/60,
+            client: event.clientName,
+            type: event.title,
+            location: event.location,
+            status: event.status,
+            isRecurring: event.isRecurring,
+            eventType: event.eventType,
+            interventionId: event.interventionId ? parseInt(event.interventionId) : undefined,
+            daysSinceLastChantier: event.daysSinceLastChantier ?? undefined,
+          };
+        });
       
       setAppointments(mappedAppointments);
 
@@ -738,9 +781,71 @@ export function CalendarPage() {
     }
   };
 
+  const handleUnschedule = (appointmentId: string) => {
+    setAppointments(currentAppointments => {
+      const appointment = currentAppointments.find(apt => apt.id === appointmentId);
+      
+      if (appointment) {
+        // Créer une version "unscheduled" du rendez-vous
+        const unscheduledApt = {
+          ...appointment,
+          status: 'unscheduled' as EventStatus,
+          date: '',
+          startTime: '',
+          dayIndex: 0,
+        };
+        
+        // Ajouter aux rendez-vous non programmés
+        setUnscheduledAppointments(current => [...current, unscheduledApt]);
+        
+        // Appeler l'API pour mettre à jour le statut
+        calendarEventsAPI.updateStatus(appointmentId, 'unscheduled')
+          .then(() => {
+            toast.success('Rendez-vous déplacé vers "À programmer"');
+          })
+          .catch((error) => {
+            console.error('Erreur lors de la mise à jour du statut:', error);
+            toast.error('Erreur lors de la déprogrammation');
+          });
+        
+        // Retirer des appointments programmés
+        return currentAppointments.filter(apt => apt.id !== appointmentId);
+      }
+      
+      return currentAppointments;
+    });
+  };
+
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAppointment) return;
+
+    try {
+      await calendarEventsAPI.update({
+        id: editingAppointment.id,
+        date: editingAppointment.date,
+        startTime: editingAppointment.startTime,
+        duration: editingAppointment.duration * 60,
+        title: editingAppointment.type,
+        location: editingAppointment.location,
+        status: editingAppointment.status,
+        eventType: editingAppointment.eventType,
+      });
+
+      toast.success('Rendez-vous modifié avec succès');
+      setIsEditDialogOpen(false);
+      setEditingAppointment(null);
+      
+      // Recharger tous les événements pour synchroniser avec le backend
+      await loadAppointments();
+    } catch (error) {
+      console.error('Erreur lors de la modification du rendez-vous:', error);
+      toast.error('Erreur lors de la modification du rendez-vous');
+    }
   };
 
   const proposedCount = appointments.filter(a => a.status === 'proposed').length;
@@ -825,35 +930,45 @@ export function CalendarPage() {
           {/* Calendar Grid et Chantiers à programmer */}
           <div className="flex gap-4">
             {/* Liste des chantiers à programmer - rétractable horizontalement */}
-            {!isMobile && unscheduledAppointments.length > 0 && (
+            {!isMobile && (
               <div className={`transition-all duration-300 flex-shrink-0 ${
                 isUnscheduledOpen ? 'w-64' : 'w-12'
               }`}>
                 {isUnscheduledOpen ? (
-                  <Card className="border-2 border-orange-200 bg-orange-50 h-full">
-                    <div className="flex items-center justify-between p-4 border-b border-orange-200">
-                      <div className="flex items-center gap-2">
-                        <CalendarX className="w-5 h-5 text-orange-600" />
-                        <span className="text-gray-900">À programmer</span>
-                        <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
-                          {unscheduledAppointments.length}
-                        </span>
+                  <UnscheduledDropZone onDrop={handleUnschedule}>
+                    <Card className="border-2 border-orange-200 bg-orange-50 h-full">
+                      <div className="flex items-center justify-between p-4 border-b border-orange-200">
+                        <div className="flex items-center gap-2">
+                          <CalendarX className="w-5 h-5 text-orange-600" />
+                          <span className="text-gray-900">À programmer</span>
+                          {unscheduledAppointments.length > 0 && (
+                            <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
+                              {unscheduledAppointments.length}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setIsUnscheduledOpen(false)}
+                          className="h-8 w-8 hover:bg-orange-100"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-gray-500" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsUnscheduledOpen(false)}
-                        className="h-8 w-8 hover:bg-orange-100"
-                      >
-                        <ChevronLeft className="w-4 h-4 text-gray-500" />
-                      </Button>
-                    </div>
-                    <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
-                      {unscheduledAppointments.map((apt) => (
-                        <UnscheduledChantier key={apt.id} appointment={apt} />
-                      ))}
-                    </div>
-                  </Card>
+                      <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+                        {unscheduledAppointments.length > 0 ? (
+                          unscheduledAppointments.map((apt) => (
+                            <UnscheduledChantier key={apt.id} appointment={apt} />
+                          ))
+                        ) : (
+                          <div className="text-center text-sm text-gray-500 py-8">
+                            Aucun rendez-vous à programmer
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </UnscheduledDropZone>
                 ) : (
                   <button
                     onClick={() => setIsUnscheduledOpen(true)}
@@ -863,9 +978,11 @@ export function CalendarPage() {
                     <div className="text-sm text-gray-900" style={{ writingMode: 'vertical-rl' }}>
                       À programmer
                     </div>
-                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
-                      {unscheduledAppointments.length}
-                    </span>
+                    {unscheduledAppointments.length > 0 && (
+                      <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
+                        {unscheduledAppointments.length}
+                      </span>
+                    )}
                   </button>
                 )}
               </div>
@@ -984,30 +1101,32 @@ export function CalendarPage() {
           {isMobile && unscheduledAppointments.length > 0 && (
             <div className="mt-6">
               <Collapsible open={isUnscheduledOpen} onOpenChange={setIsUnscheduledOpen}>
-                <Card className="border-2 border-orange-200 bg-orange-50">
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between p-4 hover:bg-orange-100"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CalendarX className="w-5 h-5 text-orange-600" />
-                        <span className="text-gray-900">Chantiers à programmer</span>
-                        <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
-                          {unscheduledAppointments.length}
-                        </span>
+                <UnscheduledDropZone onDrop={handleUnschedule}>
+                  <Card className="border-2 border-orange-200 bg-orange-50">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between p-4 hover:bg-orange-100"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarX className="w-5 h-5 text-orange-600" />
+                          <span className="text-gray-900">Chantiers à programmer</span>
+                          <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
+                            {unscheduledAppointments.length}
+                          </span>
+                        </div>
+                        <ChevronsUpDown className="w-4 h-4 text-gray-500" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-4 pt-0 space-y-3">
+                        {unscheduledAppointments.map((apt) => (
+                          <UnscheduledChantier key={apt.id} appointment={apt} />
+                        ))}
                       </div>
-                      <ChevronsUpDown className="w-4 h-4 text-gray-500" />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="p-4 pt-0 space-y-3">
-                      {unscheduledAppointments.map((apt) => (
-                        <UnscheduledChantier key={apt.id} appointment={apt} />
-                      ))}
-                    </div>
-                  </CollapsibleContent>
-                </Card>
+                    </CollapsibleContent>
+                  </Card>
+                </UnscheduledDropZone>
               </Collapsible>
             </div>
           )}
@@ -1072,7 +1191,131 @@ export function CalendarPage() {
                 Modifier les détails de l'intervention
               </DialogDescription>
             </DialogHeader>
-                  // TODO: Formulaire d'édition
+            {editingAppointment && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-client">Client</Label>
+                  <Input
+                    id="edit-client"
+                    value={editingAppointment.client}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-type">Type d'intervention</Label>
+                  <Input
+                    id="edit-type"
+                    value={editingAppointment.type}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-date">Date</Label>
+                  <Input
+                    id="edit-date"
+                    type="date"
+                    value={editingAppointment.date}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      // Calculer le dayIndex basé sur la nouvelle date
+                      const selectedDate = new Date(newDate);
+                      const weekStart = new Date(weekDays[0].fullDate);
+                      const diffTime = selectedDate.getTime() - weekStart.getTime();
+                      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                      
+                      setEditingAppointment({
+                        ...editingAppointment,
+                        date: newDate,
+                        dayIndex: diffDays >= 0 && diffDays < 7 ? diffDays : editingAppointment.dayIndex
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-time">Heure de début</Label>
+                  <Input
+                    id="edit-time"
+                    type="time"
+                    value={editingAppointment.startTime}
+                    onChange={(e) => setEditingAppointment({
+                      ...editingAppointment,
+                      startTime: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-duration">Durée (heures)</Label>
+                  <Input
+                    id="edit-duration"
+                    type="number"
+                    min="0.5"
+                    step="0.5"
+                    value={editingAppointment.duration}
+                    onChange={(e) => setEditingAppointment({
+                      ...editingAppointment,
+                      duration: parseFloat(e.target.value) || 1
+                    })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Statut</Label>
+                  <Select
+                    value={editingAppointment.status}
+                    onValueChange={(value: EventStatus) => setEditingAppointment({
+                      ...editingAppointment,
+                      status: value
+                    })}
+                  >
+                    <SelectTrigger id="edit-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="proposed">Proposé</SelectItem>
+                      <SelectItem value="confirmed">Confirmé</SelectItem>
+                      <SelectItem value="unscheduled">Non programmé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location">Lieu</Label>
+                  <Input
+                    id="edit-location"
+                    value={editingAppointment.location}
+                    onChange={(e) => setEditingAppointment({
+                      ...editingAppointment,
+                      location: e.target.value
+                    })}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={handleSaveEdit}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    Enregistrer
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditDialogOpen(false);
+                      setEditingAppointment(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

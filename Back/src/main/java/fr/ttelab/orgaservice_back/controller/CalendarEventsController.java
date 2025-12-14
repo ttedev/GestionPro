@@ -160,10 +160,16 @@ public class CalendarEventsController {
     Chantier chantier = chantierRepository.findById(UUID.fromString(id)).orElse(null);
     if(chantier!=null && chantier.getOwner().getId().equals(owner.getId())){
       chantier.setStatus(req.getStatus());
+      if (req.getStatus() == EventStatus.unscheduled) {
+        chantier.setDateHeure(null);
+      }
       log.info("Updating chantier {} status to {}", chantier.getId(), req.getStatus());
       chantierRepository.save(chantier);
       return ResponseEntity.ok(MappingUtil.toCalendarEventDTO(chantier));
     }else  if(event!=null && event.getOwner().getId().equals(owner.getId())){
+      if (req.getStatus() == EventStatus.unscheduled) {
+        event.setDateTime(null);
+      }
       event.setStatus(req.getStatus());
       eventRepository.save(event);
       return ResponseEntity.ok(MappingUtil.toCalendarEventDTO(event));

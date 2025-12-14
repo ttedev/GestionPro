@@ -36,8 +36,7 @@ public class CalendarEventDTO {
   public CalendarEventDTO computeDayIndex() {
     createdAt = LocalDateTime.now();
     if(date != null) {
-      dayIndex = date.getDayOfWeek().getValue() % 7; // Sunday=7 -> 0
-      if(dayIndex == 0) dayIndex = 0; // explicit
+      dayIndex = date.getDayOfWeek().getValue() -1;
     }
     return this;
   }
