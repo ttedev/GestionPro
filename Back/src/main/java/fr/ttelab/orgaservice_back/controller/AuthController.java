@@ -106,4 +106,43 @@ public class AuthController {
       }
     return ResponseEntity.notFound().build();
     }
+
+    @PostMapping("/update-password")
+    public ResponseEntity<?> updatePassword(@RequestBody Map<String, String> req) {
+      String newPassword = req.get("newPassword");
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null && authentication.isAuthenticated()) {
+        String name = authentication.getName();
+        User user = userRepository.findByEmail(name).orElseGet(null);
+        if (user != null) {
+          user.setPassword(passwordEncoder.encode(newPassword));
+          userRepository.save(user);
+          return ResponseEntity.ok().build();
+        }
+      }
+      return ResponseEntity.status(403).body("Unauthorized");
+    }
+
+    @PostMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> req) {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null && authentication.isAuthenticated()) {
+        String name = authentication.getName();
+        String email = req.get("email");
+        String company = req.get("company");
+        String workStartTime = req.get("workStartTime");
+        String workEndTime = req.get("workEndTime");
+
+        User user = userRepository.findByEmail(name).orElseGet(null);
+        if (user != null) {
+          if (email != null) user.setEmail(email);
+          if (company != null) user.setCompany(company);
+          if (workStartTime != null) user.setWorkStartTime(java.time.LocalTime.parse(workStartTime));
+          if (workEndTime != null) user.setWorkEndTime(java.time.LocalTime.parse(workEndTime));
+          userRepository.save(user);
+          return ResponseEntity.ok().build();
+        }
+      }
+        return ResponseEntity.status(403).body("Unauthorized");
+    }
   }

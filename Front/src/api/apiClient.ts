@@ -251,6 +251,32 @@ export const authAPI = {
     const base = API_BASE_URL.replace(/\/api$/,'');
     window.location.href = `${base}/oauth2/authorization/google`;
   },
+
+  /**
+   * Mettre à jour le profil utilisateur
+   */
+  updateProfile: async (userData: { name: string; email: string; company: string; workStartTime: string; workEndTime: string }): Promise<User> => {
+    const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData),
+    });
+
+    return handleResponse<User>(response);
+  },
+
+  /**
+   * Mettre à jour le mot de passe
+   */
+  updatePassword: async (newPassword: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/auth/update-password`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ newPassword }),
+    });
+
+    return handleResponse<void>(response);
+  },
 };
 
 // =============================================================================

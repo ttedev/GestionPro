@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { User, Mail, Building2, ArrowLeft, Save, X, Clock } from 'lucide-react';
+import { User, Mail, Building2, Save, X, Clock, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { User as MyUser} from '../api/apiClient';
+import { User as MyUser, authAPI } from '../api/apiClient';
 
 interface UserProfilePageProps {
   user: MyUser;
@@ -14,7 +13,6 @@ interface UserProfilePageProps {
 }
 
 export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
-  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name,
@@ -24,7 +22,18 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
     workEndTime: user.workEndTime,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // États pour le changement de mot de passe
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -48,16 +57,63 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
       return;
     }
 
-    // Update user
-    onUpdateUser({
-      id: user.id,
-      status: user.status,
-      endLicense: user.endLicense,
-      ...formData,
-    });
+    setIsSubmitting(true);
+    try {
+      // Envoyer les modifications au backend
+      const updatedUser = await authAPI.updateProfile({
+        name: formData.name,
+        email: formData.email,
+        company: formData.company,
+        workStartTime: formData.workStartTime,
+        workEndTime: formData.workEndTime,
+      });
 
-    setIsEditing(false);
-    toast.success('Profil mis à jour avec succès !');
+      // Update user localement
+      onUpdateUser(updatedUser);
+      setIsEditing(false);
+      toast.success('Profil mis à jour avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du profil:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la mise à jour du profil');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation du mot de passe
+    if (!passwordData.newPassword) {
+      toast.error('Le nouveau mot de passe est requis');
+      return;
+    }
+    if (passwordData.newPassword.length < 8) {
+      toast.error('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    try {
+      await authAPI.updatePassword(passwordData.newPassword);
+      toast.success('Mot de passe modifié avec succès !');
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      setIsChangingPassword(false);
+    } catch (error) {
+      console.error('Erreur lors du changement de mot de passe:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors du changement de mot de passe');
+    } finally {
+      setIsSubmittingPassword(false);
+    }
+  };
+
+  const handleCancelPassword = () => {
+    setPasswordData({ newPassword: '', confirmPassword: '' });
+    setIsChangingPassword(false);
   };
 
   const handleCancel = () => {
@@ -241,15 +297,16 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
             {/* Action Buttons */}
             {isEditing && (
               <div className="flex gap-3 pt-4 border-t">
-                <Button type="submit" className="gap-2">
+                <Button type="submit" className="gap-2" disabled={isSubmitting}>
                   <Save className="w-4 h-4" />
-                  Enregistrer
+                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
                   className="gap-2"
+                  disabled={isSubmitting}
                 >
                   <X className="w-4 h-4" />
                   Annuler
@@ -280,6 +337,102 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
             </div>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Password Change Card */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Modifier le mot de passe
+              </CardTitle>
+              <CardDescription>
+                Changez votre mot de passe de connexion
+              </CardDescription>
+            </div>
+            {!isChangingPassword && (
+              <Button onClick={() => setIsChangingPassword(true)} variant="outline">
+                Changer
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {isChangingPassword && (
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {/* New Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="newPassword" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Nouveau mot de passe
+                </Label>
+                <div className="relative max-w-md">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="Entrez votre nouveau mot de passe"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Minimum 8 caractères</p>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Confirmer le mot de passe
+                </Label>
+                <div className="relative max-w-md">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    placeholder="Confirmez votre nouveau mot de passe"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button type="submit" className="gap-2" disabled={isSubmittingPassword}>
+                  <Save className="w-4 h-4" />
+                  {isSubmittingPassword ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelPassword}
+                  className="gap-2"
+                  disabled={isSubmittingPassword}
+                >
+                  <X className="w-4 h-4" />
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
