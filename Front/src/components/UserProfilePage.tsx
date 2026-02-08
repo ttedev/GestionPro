@@ -37,15 +37,15 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
     e.preventDefault();
     
     // Validation
-    if (!formData.name.trim()) {
+    if (!formData.name?.trim()) {
       toast.error('Le nom est requis');
       return;
     }
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       toast.error('L\'email est requis');
       return;
     }
-    if (!formData.company.trim()) {
+    if (!formData.company?.trim()) {
       toast.error('L\'entreprise est requise');
       return;
     }

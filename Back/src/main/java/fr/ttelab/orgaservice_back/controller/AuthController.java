@@ -117,7 +117,7 @@ public class AuthController {
         if (user != null) {
           user.setPassword(passwordEncoder.encode(newPassword));
           userRepository.save(user);
-          return ResponseEntity.ok().build();
+          return ResponseEntity.ok(Map.of("message", "Mot de passe mis à jour avec succès"));
         }
       }
       return ResponseEntity.status(403).body("Unauthorized");
@@ -140,7 +140,7 @@ public class AuthController {
           if (workStartTime != null) user.setWorkStartTime(java.time.LocalTime.parse(workStartTime));
           if (workEndTime != null) user.setWorkEndTime(java.time.LocalTime.parse(workEndTime));
           userRepository.save(user);
-          return ResponseEntity.ok().build();
+          return ResponseEntity.ok(Map.of("message", "Profil mis à jour avec succès"));
         }
       }
         return ResponseEntity.status(403).body("Unauthorized");
