@@ -5,6 +5,7 @@ import fr.ttelab.orgaservice_back.entity.User;
 import fr.ttelab.orgaservice_back.entity.UserStatus;
 import fr.ttelab.orgaservice_back.repository.UserRepository;
 import fr.ttelab.orgaservice_back.security.JwtUtil;
+import fr.ttelab.orgaservice_back.util.MappingUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -91,17 +92,7 @@ public class AuthController {
         }
 
         if (user!=null) {
-          UserDTO userDTO = new UserDTO();
-          userDTO.setName(user.getFirstName()+" "+user.getLastName());
-          userDTO.setCompany(user.getCompany());
-          userDTO.setId(user.getId().toString());
-          userDTO.setName(user.getFirstName());
-          userDTO.setEmail(user.getEmail());
-          userDTO.setWorkStartTime(user.getWorkStartTime().toString());
-            userDTO.setWorkEndTime(user.getWorkEndTime().toString());
-            userDTO.setStatus(user.getStatus());
-            if (user.getEndLicenseDate()!=null)userDTO.setEndLicenseDate(user.getEndLicenseDate().toString());
-          return ResponseEntity.ok(userDTO);
+          return ResponseEntity.ok(MappingUtil.toUserDTO(user));
         }
       }
     return ResponseEntity.notFound().build();
@@ -140,7 +131,7 @@ public class AuthController {
           if (workStartTime != null) user.setWorkStartTime(java.time.LocalTime.parse(workStartTime));
           if (workEndTime != null) user.setWorkEndTime(java.time.LocalTime.parse(workEndTime));
           userRepository.save(user);
-          return ResponseEntity.ok(Map.of("message", "Profil mis à jour avec succès"));
+          return ResponseEntity.ok(MappingUtil.toUserDTO(user));
         }
       }
         return ResponseEntity.status(403).body("Unauthorized");

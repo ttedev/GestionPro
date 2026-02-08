@@ -116,4 +116,18 @@ public class MappingUtil {
     calendarEventDTO.setStatus(chantier.getStatus());
     return calendarEventDTO.computeDayIndex();
   }
+
+    public static UserDTO toUserDTO(User user) {
+      UserDTO userDTO = new UserDTO();
+      userDTO.setName(user.getFirstName()+" "+user.getLastName());
+      userDTO.setCompany(user.getCompany());
+      userDTO.setId(user.getId().toString());
+      userDTO.setName(user.getFirstName());
+      userDTO.setEmail(user.getEmail());
+      userDTO.setWorkStartTime(user.getWorkStartTime().toString());
+      userDTO.setWorkEndTime(user.getWorkEndTime().toString());
+      userDTO.setStatus(user.getStatus());
+      if (user.getEndLicenseDate()!=null)userDTO.setEndLicenseDate(user.getEndLicenseDate().toString());
+      return userDTO;
+    }
 }
