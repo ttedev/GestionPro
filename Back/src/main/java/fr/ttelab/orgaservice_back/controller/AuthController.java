@@ -118,14 +118,16 @@ public class AuthController {
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> req) {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
       if (authentication != null && authentication.isAuthenticated()) {
-        String name = authentication.getName();
+        String userId = authentication.getName();
+        String name = req.get("name");
         String email = req.get("email");
         String company = req.get("company");
         String workStartTime = req.get("workStartTime");
         String workEndTime = req.get("workEndTime");
 
-        User user = userRepository.findByEmail(name).orElseGet(null);
+        User user = userRepository.findByEmail(userId).orElseGet(null);
         if (user != null) {
+          if (name != null) user.setFirstName(name);
           if (email != null) user.setEmail(email);
           if (company != null) user.setCompany(company);
           if (workStartTime != null) user.setWorkStartTime(java.time.LocalTime.parse(workStartTime));
