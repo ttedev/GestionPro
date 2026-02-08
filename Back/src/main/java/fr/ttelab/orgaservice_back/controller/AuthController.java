@@ -85,6 +85,10 @@ public class AuthController {
       if (authentication != null && authentication.isAuthenticated()){
         String name = authentication.getName();
         User user = userRepository.findByEmail(name).orElseGet(null);
+        if (user.getStatus().equals(UserStatus.ACTIVE) && user.getEndLicenseDate().isBefore(java.time.LocalDate.now())) {
+          user.setStatus(UserStatus.INACTIVE);
+          userRepository.save(user);
+        }
 
         if (user!=null) {
           UserDTO userDTO = new UserDTO();
