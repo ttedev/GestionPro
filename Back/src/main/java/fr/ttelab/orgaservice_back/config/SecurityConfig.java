@@ -32,8 +32,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Slf4j
 public class SecurityConfig {
 
-  @Value("${PRODUCTION_MODE:false}")
-  private boolean productionMode;
+
+  @Value("${app.frontendUrl}")
+  private String frontendUrl;
+
 
   @Autowired
   private CustomUserDetailsService customUserDetailsService;
@@ -78,7 +80,7 @@ public class SecurityConfig {
                 .successHandler((request, response, authentication) -> {
                   OidcUser user = (OidcUser) authentication.getPrincipal();
                   String token = jwtUtil.generateToken(user.getEmail());
-                  String redirectUrl = (productionMode ? "" : "http://localhost:3000") + "/login?token=" + token;
+                  String redirectUrl = (frontendUrl+ "/login?token=" + token);
                   log.info("OAuth2 {}  success redirect -> {}", user.getEmail(), redirectUrl);
                   response.sendRedirect(redirectUrl);
                 })

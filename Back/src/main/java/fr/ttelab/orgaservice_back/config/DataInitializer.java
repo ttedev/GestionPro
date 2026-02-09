@@ -39,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
     user.setEmail("admin@admin.admin");
     UserStatus status = UserStatus.ACTIVE ;
     user.setStatus(status);
-    user.setEndLicenseDate(LocalDateTime.now().plusDays(1).toLocalDate());
+    user.setEndLicenseDate(LocalDateTime.now().minusDays(1).toLocalDate());
     userRepository.save(user);
 
     Client client1 = new Client();
