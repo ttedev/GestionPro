@@ -3,7 +3,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { ArrowLeft, Mail, Phone, MapPin, Plus, Calendar, Clock, Check, AlertCircle, Edit2, Trash2, Send, Image as ImageIcon, X, Navigation, ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Plus, Calendar, Clock, Check, AlertCircle, Edit2, Trash2, Send, Image as ImageIcon, X, Navigation, ChevronDown, ChevronUp, Key, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import {
 } from './ui/collapsible';
 import { clientsAPI, projectsAPI, chantiersAPI, remarksAPI, type Client as ClientType, type ProjectDTO, type ChantierDTO, type Remark as ApiRemark } from '../api/apiClient';
 import { ProjectForm } from './ProjectForm';
+import { EditClientDialog } from './EditClientDialog';
 
 interface ClientDetailPageProps {
   clientId: string;
@@ -232,9 +233,24 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
           <div className="flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mx-auto mb-4">
             <span className="text-green-700 text-3xl">{client ? client.name.charAt(0) : '…'}</span>
           </div>
-          <h2 className="text-center text-gray-900 mb-4">
-            {clientLoading ? 'Chargement…' : clientError ? 'Erreur' : client?.name || '—'}
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <h2 className="text-center text-gray-900">
+              {clientLoading ? 'Chargement…' : clientError ? 'Erreur' : client?.name || '—'}
+            </h2>
+            {client && (
+              <EditClientDialog
+                client={client}
+                trigger={
+                  <Button variant="ghost" size="sm" className="p-1 h-auto">
+                    <Pencil className="w-4 h-4 text-gray-500 hover:text-green-600" />
+                  </Button>
+                }
+                onClientUpdated={(updatedClient) => {
+                  setClient(updatedClient);
+                }}
+              />
+            )}
+          </div>
           <div className="space-y-3 text-sm">
             {client && (
               <div className="flex items-center gap-2 text-gray-600 p-2 bg-gray-50 rounded">
@@ -246,53 +262,67 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
               <Phone className="w-4 h-4 flex-shrink-0" />
               {client?.phone || '—'}
             </div>
-            <div className="space-y-2">
+
+            {/* Liste de toutes les adresses */}
+            {client?.addresses && client.addresses.length > 0 ? (
+              <div className="space-y-4">
+                {client.addresses.map((addr, index) => (
+                  <div key={addr.id || index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-2 text-gray-600">
+                      <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{addr.street}, {addr.postalCode} {addr.city}</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          const address = encodeURIComponent(`${addr.street}, ${addr.postalCode} ${addr.city}`);
+                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${address}`, '_blank');
+                        }}
+                      >
+                        <Navigation className="w-3 h-3 mr-1" />
+                        Maps
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          const address = encodeURIComponent(`${addr.street}, ${addr.postalCode} ${addr.city}`);
+                          window.open(`https://waze.com/ul?q=${address}&navigate=yes`, '_blank');
+                        }}
+                      >
+                        <Navigation className="w-3 h-3 mr-1" />
+                        Waze
+                      </Button>
+                    </div>
+
+                    {addr.acces && (
+                      <div className="flex items-start gap-2 text-gray-600 p-2 bg-blue-50 border border-blue-200 rounded">
+                        <span className="text-blue-600 text-sm flex-shrink-0">🔑</span>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-600">Accès</p>
+                          <p className="text-sm text-blue-900">{addr.acces}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {addr.hasKey && (
+                      <div className="flex items-center gap-2 text-amber-700 p-2 bg-amber-50 border border-amber-200 rounded">
+                        <Key className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm">Clé en possession</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div className="flex items-start gap-2 text-gray-600 p-2 bg-gray-50 rounded">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{client?.address || '—'}</span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={() => {
-                    if (!client) return;
-                    const address = encodeURIComponent(client.address);
-                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${address}`, '_blank');
-                  }}
-                >
-                  <Navigation className="w-3 h-3 mr-1" />
-                  Google Maps
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={() => {
-                    if (!client) return;
-                    const address = encodeURIComponent(client.address);
-                    window.open(`https://waze.com/ul?q=${address}&navigate=yes`, '_blank');
-                  }}
-                >
-                  <Navigation className="w-3 h-3 mr-1" />
-                  Waze
-                </Button>
-              </div>
-            </div>
-            {client?.access && (
-              <div className="flex items-start gap-2 text-gray-600 p-3 bg-blue-50 border border-blue-200 rounded">
-                <span className="text-blue-600 text-lg flex-shrink-0">🔑</span>
-                <div className="flex-1">
-                  <p className="text-xs text-blue-600 mb-1">Informations d'accès</p>
-                  <p className="text-sm text-blue-900">{client.access}</p>
-                </div>
-              </div>
-            )}
-            {client?.hasKey && (
-              <div className="flex items-center gap-2 text-amber-700 p-2 bg-amber-50 border border-amber-200 rounded">
-                <Key className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">Clé en possession</span>
+                <span>Aucune adresse</span>
               </div>
             )}
             {clientError && <p className="text-sm text-red-600">{clientError}</p>}

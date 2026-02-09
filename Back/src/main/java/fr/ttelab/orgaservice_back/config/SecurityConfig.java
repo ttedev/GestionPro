@@ -78,7 +78,7 @@ public class SecurityConfig {
                 .successHandler((request, response, authentication) -> {
                   OidcUser user = (OidcUser) authentication.getPrincipal();
                   String token = jwtUtil.generateToken(user.getEmail());
-                  String redirectUrl = (productionMode ? "" : "http://localhost:8080") + "/login?token=" + token;
+                  String redirectUrl = (productionMode ? "" : "http://localhost:3000") + "/login?token=" + token;
                   log.info("OAuth2 {}  success redirect -> {}", user.getEmail(), redirectUrl);
                   response.sendRedirect(redirectUrl);
                 })

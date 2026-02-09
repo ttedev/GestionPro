@@ -13,12 +13,29 @@ public class MappingUtil {
     dto.setName(c.getName());
     dto.setEmail(c.getEmail());
     dto.setPhone(c.getPhone());
-    dto.setAddress(c.getAddress());
-    dto.setAccess(c.getAccess());
-    dto.setHasKey(c.isHasKey());
     dto.setType(c.getType());
     dto.setStatus(c.getStatus());
     dto.setCreatedAt(c.getCreatedAt());
+
+    // Mapper les adresses
+    if (c.getAddresses() != null) {
+      dto.setAddresses(c.getAddresses().stream()
+          .map(MappingUtil::toAddressDTO)
+          .collect(Collectors.toList()));
+    }
+
+    return dto;
+  }
+
+  public static AddressDTO toAddressDTO(Adress a) {
+    AddressDTO dto = new AddressDTO();
+    dto.setId(a.getId().toString());
+    dto.setStreet(a.getStreet());
+    dto.setCity(a.getCity());
+    dto.setPostalCode(a.getPostalCode());
+    dto.setAcces(a.getAcces());
+    dto.setOrder(a.getOrder());
+    dto.setHasKey(a.isHasKey());
     return dto;
   }
 

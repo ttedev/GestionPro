@@ -8,8 +8,7 @@ import fr.ttelab.orgaservice_back.entity.ClientType;
 import fr.ttelab.orgaservice_back.entity.ClientStatus;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "client")
@@ -25,12 +24,14 @@ public class Client {
 
   private String email;
   private String phone;
-  private String address;
 
-  // Informations d'accès portail/code etc.
-  private String access;
 
-  private boolean hasKey = false;
+  @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  @OrderBy("order ASC")
+  private List<Adress> addresses = new ArrayList<>();
+
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

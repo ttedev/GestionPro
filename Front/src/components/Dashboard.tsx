@@ -3,7 +3,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Clock, Phone, MapPin, Key, Plus, UserPlus, Briefcase, CalendarPlus, MessageSquare } from 'lucide-react';
+import { Clock, Phone, MapPin, Key, UserPlus, Briefcase, CalendarPlus, MessageSquare } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from './ui/dialog';
 import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { ProjectForm } from './ProjectForm';
+import { AddClientDialog } from './AddClientDialog';
 import { dashboardAPI, clientsAPI, type DashboardStats, type Client, remarksAPI } from '../api/apiClient';
 
 interface DashboardProps {
@@ -38,19 +38,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [clientsError, setClientsError] = useState<string | null>(null);
-  // New client form state
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPhone, setNewPhone] = useState('');
+  // Remark form state
   const [newRemark, setNewRemark] = useState('');
   const [remarkImages, setRemarkImages] = useState<string[]>([]);
-  const [newAddress, setNewAddress] = useState('');
-  const [newAccess, setNewAccess] = useState('');
-  const [newHasKey, setNewHasKey] = useState(false);
-  const [newType, setNewType] = useState<'particulier' | 'professionnel'>('particulier');
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState(false);
   // Dialog open state for remark creation
   const [isRemarkDialogOpen, setIsRemarkDialogOpen] = useState(false);
   // Dialog open state for project/intervention creation
@@ -154,120 +144,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Add Client */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="h-auto py-6 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700">
+        <AddClientDialog
+          trigger={
+            <Button className="h-auto py-6 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700 w-full">
               <UserPlus className="w-6 h-6" />
               <span>Ajouter un client</span>
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajouter un nouveau client</DialogTitle>
-              <DialogDescription>
-                Remplissez les informations du client
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="client-name">Nom complet</Label>
-                <Input id="client-name" placeholder="Ex: Marie Dubois" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="client-email">Email</Label>
-                <Input id="client-email" type="email" placeholder="email@exemple.fr" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="client-phone">Téléphone</Label>
-                <Input id="client-phone" placeholder="06 12 34 56 78" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="client-address">Adresse</Label>
-                <Input id="client-address" placeholder="12 rue des Fleurs, 75001 Paris" value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="client-access">Informations d'accès</Label>
-                <Textarea
-                  id="client-access"
-                  placeholder="Code portail, digicode, instructions d'accès..."
-                  rows={3}
-                  value={newAccess}
-                  onChange={(e) => setNewAccess(e.target.value)}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Optionnel : codes, instructions pour accéder au terrain
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="client-hasKey" checked={newHasKey} onCheckedChange={(v: boolean | 'indeterminate') => setNewHasKey(v === true)} />
-                <label
-                  htmlFor="client-hasKey"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                >
-                  <Key className="w-4 h-4 text-amber-600" />
-                  Je possède une clé pour ce client
-                </label>
-              </div>
-              <div>
-                <Label htmlFor="client-type">Type</Label>
-                <select
-                  id="client-type"
-                  className="mt-1 w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as 'particulier' | 'professionnel')}
-                >
-                  <option value="particulier">Particulier</option>
-                  <option value="professionnel">Professionnel</option>
-                </select>
-              </div>
-              {createError && (
-                <div className="text-sm text-red-600">{createError}</div>
-              )}
-              {createSuccess && (
-                <div className="text-sm text-green-600">Client ajouté avec succès.</div>
-              )}
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={createLoading}
-                onClick={async () => {
-                  setCreateError(null);
-                  setCreateSuccess(false);
-                  if (!newName || !newEmail || !newPhone || !newAddress) {
-                    setCreateError('Veuillez remplir les champs requis (nom, email, téléphone, adresse).');
-                    return;
-                  }
-                  setCreateLoading(true);
-                  try {
-                    await clientsAPI.create({
-                      name: newName.trim(),
-                      email: newEmail.trim(),
-                      phone: newPhone.trim(),
-                      address: newAddress.trim(),
-                      access: newAccess.trim() || null,
-                      hasKey: newHasKey,
-                      type: newType,
-                    });
-                    await loadClients();
-                    setNewName('');
-                    setNewEmail('');
-                    setNewPhone('');
-                    setNewAddress('');
-                    setNewAccess('');
-                    setNewHasKey(false);
-                    setNewType('particulier');
-                    setCreateSuccess(true);
-                  } catch (e: any) {
-                    setCreateError(e.message || 'Erreur lors de la création du client');
-                  } finally {
-                    setCreateLoading(false);
-                  }
-                }}
-              >
-                {createLoading ? 'Enregistrement...' : 'Ajouter le client'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          }
+          onClientCreated={loadClients}
+        />
 
         {/* Add Intervention */}
         <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>

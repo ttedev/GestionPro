@@ -1,6 +1,7 @@
 package fr.ttelab.orgaservice_back.controller;
 
 import fr.ttelab.orgaservice_back.dto.ClientDTO;
+import fr.ttelab.orgaservice_back.entity.Adress;
 import fr.ttelab.orgaservice_back.entity.Client;
 import fr.ttelab.orgaservice_back.entity.ClientStatus;
 import fr.ttelab.orgaservice_back.entity.ClientType;
@@ -44,13 +45,21 @@ public class ClientsController {
   }
 
   @Data
+  public static class AddressRequest {
+    private String street;
+    private String city;
+    private String postalCode;
+    private String acces;
+    private Integer order;
+    private Boolean hasKey = false;
+  }
+
+  @Data
   public static class ClientCreateRequest {
     private String name;
     private String email;
     private String phone;
-    private String address;
-    private String access;
-    private Boolean hasKey = false;
+    private List<AddressRequest> addresses;
     private ClientType type;
   }
 
@@ -65,12 +74,26 @@ public class ClientsController {
     c.setName(req.getName());
     c.setEmail(req.getEmail());
     c.setPhone(req.getPhone());
-    c.setAddress(req.getAddress());
-    c.setAccess(req.getAccess());
-    c.setHasKey(Boolean.TRUE.equals(req.getHasKey()));
     c.setType(req.getType());
     c.setStatus(ClientStatus.actif);
     c.setOwner(owner);
+
+    // Ajouter les adresses
+    if (req.getAddresses() != null) {
+      for (int i = 0; i < req.getAddresses().size(); i++) {
+        AddressRequest addrReq = req.getAddresses().get(i);
+        Adress adress = new Adress();
+        adress.setStreet(addrReq.getStreet());
+        adress.setCity(addrReq.getCity());
+        adress.setPostalCode(addrReq.getPostalCode());
+        adress.setAcces(addrReq.getAcces());
+        adress.setOrder(addrReq.getOrder() != null ? addrReq.getOrder() : i);
+        adress.setHasKey(Boolean.TRUE.equals(addrReq.getHasKey()));
+        adress.setClient(c);
+        c.getAddresses().add(adress);
+      }
+    }
+
     clientRepository.save(c);
     return ResponseEntity.created(URI.create("/api/clients/"+c.getId())).body(MappingUtil.toClientDTO(c));
   }
@@ -80,9 +103,7 @@ public class ClientsController {
     private String name;
     private String email;
     private String phone;
-    private String address;
-    private String access;
-    private Boolean hasKey;
+    private List<AddressRequest> addresses;
     private ClientType type;
     private ClientStatus status;
   }
@@ -96,14 +117,32 @@ public class ClientsController {
       return ResponseEntity.status(404).body(error("Client not found"));
     }
     Client c = clientOpt.get();
-    c.setName(req.getName());
-    c.setEmail(req.getEmail());
-    c.setPhone(req.getPhone());
-    c.setAddress(req.getAddress());
-    c.setAccess(req.getAccess());
-    if(req.getHasKey()!=null) c.setHasKey(req.getHasKey());
-    if(req.getType()!=null) c.setType(req.getType());
-    if(req.getStatus()!=null) c.setStatus(req.getStatus());
+    if(req.getName() != null) c.setName(req.getName());
+    if(req.getEmail() != null) c.setEmail(req.getEmail());
+    if(req.getPhone() != null) c.setPhone(req.getPhone());
+    if(req.getType() != null) c.setType(req.getType());
+    if(req.getStatus() != null) c.setStatus(req.getStatus());
+
+    // Mettre à jour les adresses si fournies
+    if (req.getAddresses() != null) {
+      // Supprimer les anciennes adresses
+      c.getAddresses().clear();
+      // Ajouter les nouvelles adresses
+      for (int i = 0; i < req.getAddresses().size(); i++) {
+        AddressRequest addrReq = req.getAddresses().get(i);
+        Adress adress = new Adress();
+        adress.setStreet(addrReq.getStreet());
+        adress.setCity(addrReq.getCity());
+        adress.setPostalCode(addrReq.getPostalCode());
+        adress.setAcces(addrReq.getAcces());
+        adress.setOrder(addrReq.getOrder() != null ? addrReq.getOrder() : i);
+        adress.setHasKey(Boolean.TRUE.equals(addrReq.getHasKey()));
+        adress.setClient(c);
+        c.getAddresses().add(adress);
+      }
+    }
+    clientRepository.save(c);
+
     return ResponseEntity.ok(MappingUtil.toClientDTO(c));
   }
 

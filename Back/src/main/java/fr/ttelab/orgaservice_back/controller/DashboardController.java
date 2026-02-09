@@ -42,9 +42,14 @@ public class DashboardController {
       u.setId(String.valueOf(e.getId()));
       u.setClientName(e.getClient().getName());
       u.setClientPhone(e.getClient().getPhone());
-      u.setClientAddress(e.getClient().getAddress());
-      u.setClientAccess(e.getClient().getAccess());
-      u.setClientHasKey(e.getClient().isHasKey());
+      // Récupérer l'adresse principale (première adresse)
+      var addresses = e.getClient().getAddresses();
+      if (addresses != null && !addresses.isEmpty()) {
+        var firstAddress = addresses.get(0);
+        u.setClientAddress(firstAddress.getStreet() + ", " + firstAddress.getPostalCode() + " " + firstAddress.getCity());
+        u.setClientAccess(firstAddress.getAcces());
+        u.setClientHasKey(firstAddress.isHasKey());
+      }
       u.setType(e.getEventType().name());
 
       return u;

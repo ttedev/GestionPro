@@ -12,8 +12,8 @@ export const API_CONFIG = {
     // Désactivation des mocks pour utiliser le backend réel
     USE_MOCK_DATA: false,
   
-  // URL de base de l'API
-    API_BASE_URL: 'https://jardin.vps.ttelab.fr/api',
+  // URL de base de l'API - utilise la variable d'environnement ou localhost par défaut
+    API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
 
   // Timeout des requêtes (en ms)
   REQUEST_TIMEOUT: 30000,

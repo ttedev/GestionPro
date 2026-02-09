@@ -10,8 +10,8 @@
 
 // Configuration
 
-const API_BASE_URL= 'https://jardin.vps.ttelab.fr/api';
-//const API_BASE_URL= 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 
 
 export type EventStatus = 'unscheduled' | 'proposed' | 'confirmed' | 'completed' | 'cancelled';
@@ -29,14 +29,22 @@ export interface User {
   endLicenseDate: string;
 }
 
+export interface Address {
+  id?: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  acces: string | null;
+  order: number;
+  hasKey: boolean;
+}
+
 export interface Client {
   id: string;
   name: string;
   email: string;
   phone: string;
-  address: string;
-  access: string | null;
-  hasKey: boolean;
+  addresses: Address[];
   type: 'particulier' | 'professionnel';
   status: 'actif' | 'inactif';
   createdAt: string;
@@ -238,6 +246,7 @@ export const authAPI = {
    * Récupérer l'utilisateur connecté
    */
   getCurrentUser: async (): Promise<User> => {
+    console.log(API_BASE_URL)
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: getHeaders(),
     });
@@ -327,7 +336,7 @@ export const clientsAPI = {
   /**
    * Mettre à jour un client
    */
-  update: async (id: number, client: Partial<Omit<Client, 'id' | 'createdAt'>>): Promise<Client> => {
+  update: async (id: string, client: Partial<Omit<Client, 'id' | 'createdAt'>>): Promise<Client> => {
     const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -340,7 +349,7 @@ export const clientsAPI = {
   /**
    * Supprimer un client
    */
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/clients/${id}`, {
       method: 'DELETE',
       headers: getHeaders(),
