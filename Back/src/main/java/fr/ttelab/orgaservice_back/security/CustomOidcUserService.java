@@ -9,6 +9,8 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 public class CustomOidcUserService extends OidcUserService {
 
@@ -28,7 +30,8 @@ public class CustomOidcUserService extends OidcUserService {
       user.setUsername(email);
       user.setFirstName(oauth2User.getAttribute("given_name"));
       user.setLastName(oauth2User.getAttribute("family_name"));
-      user.setStatus(UserStatus.PENDING);
+      user.setStatus(UserStatus.ACTIVE);
+      user.setEndLicenseDate(LocalDate.now().plusDays(15));
       userRepository.save(user);
     }
 

@@ -361,6 +361,10 @@ export function CalendarPage() {
     loadAppointments();
   }, [currentWeek]); // Se déclenche quand currentWeek change
   
+  // Ouvrir/fermer automatiquement le panneau "À programmer" selon s'il y a des éléments
+  useEffect(() => {
+    setIsUnscheduledOpen(unscheduledAppointments.length > 0);
+  }, [unscheduledAppointments.length]);
 
 
   const timeSlots = [
