@@ -11,6 +11,7 @@ import fr.ttelab.orgaservice_back.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -73,7 +74,7 @@ public class ClientsController {
     Client c = new Client();
     c.setName(req.getName());
     c.setEmail(req.getEmail());
-    c.setPhone(req.getPhone());
+    c.setPhone(Strings.isBlank(req.getPhone()) ? "":req.getPhone().trim());
     c.setType(req.getType());
     c.setStatus(ClientStatus.actif);
     c.setOwner(owner);
@@ -119,7 +120,7 @@ public class ClientsController {
     Client c = clientOpt.get();
     if(req.getName() != null) c.setName(req.getName());
     if(req.getEmail() != null) c.setEmail(req.getEmail());
-    if(req.getPhone() != null) c.setPhone(req.getPhone());
+    if(req.getPhone() != null)     c.setPhone(Strings.isBlank(req.getPhone()) ? "":req.getPhone().trim());
     if(req.getType() != null) c.setType(req.getType());
     if(req.getStatus() != null) c.setStatus(req.getStatus());
 

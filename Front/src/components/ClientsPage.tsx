@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Plus, Search, Mail, Phone, MapPin, MoreVertical, Key } from 'lucide-react';
 import { clientsAPI, type Client } from '../api/apiClient';
 import { AddClientDialog } from './AddClientDialog';
+import { formatPhone } from '../utils/formatters';
 
 interface ClientsPageProps {
   onSelectClient: (clientId: string) => void;
@@ -119,7 +120,7 @@ export function ClientsPage({ onSelectClient }: ClientsPageProps) {
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Phone className="w-4 h-4" />
-                      {client.phone}
+                      {formatPhone(client.phone)}
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <MapPin className="w-4 h-4" />

@@ -28,6 +28,7 @@ import {
 import { clientsAPI, projectsAPI, chantiersAPI, remarksAPI, type Client as ClientType, type ProjectDTO, type ChantierDTO, type Remark as ApiRemark } from '../api/apiClient';
 import { ProjectForm } from './ProjectForm';
 import { EditClientDialog } from './EditClientDialog';
+import { formatPhone } from '../utils/formatters';
 
 interface ClientDetailPageProps {
   clientId: string;
@@ -260,7 +261,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
             )}
             <div className="flex items-center gap-2 text-gray-600 p-2 bg-gray-50 rounded">
               <Phone className="w-4 h-4 flex-shrink-0" />
-              {client?.phone || '—'}
+              {client?.phone ? formatPhone(client.phone) : '—'}
             </div>
 
             {/* Liste de toutes les adresses */}
