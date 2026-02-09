@@ -286,6 +286,19 @@ export const authAPI = {
 
     return handleResponse<void>(response);
   },
+
+  /**
+   * Souscrire à un abonnement via Stripe
+   */
+  subscribe: async (priceId: string): Promise<{ url: string }> => {
+    const response = await fetch(`${API_BASE_URL}/billing/checkout-session`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ priceId }),
+    });
+
+    return handleResponse<{ url: string }>(response);
+  },
 };
 
 // =============================================================================

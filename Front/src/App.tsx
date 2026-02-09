@@ -187,6 +187,7 @@ export default function App() {
   };
 
   const handleUpdateUser = (updatedUser: User) => {
+    
     setCurrentUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
   };

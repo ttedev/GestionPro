@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { User, Mail, Building2, Save, X, Clock, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Building2, Save, X, Clock, Lock, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { User as MyUser, authAPI } from '../api/apiClient';
 
@@ -32,6 +32,22 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  // Rafraîchir les données utilisateur à l'arrivée sur la page
+  // Important après un paiement Stripe pour mettre à jour le statut
+  useEffect(() => {
+    const refreshUserData = async () => {
+      try {
+        const updatedUser = await authAPI.getCurrentUser();
+        onUpdateUser(updatedUser);
+      } catch (error) {
+        console.error('Erreur lors du rafraîchissement des données utilisateur:', error);
+      }
+    };
+
+    refreshUserData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,6 +143,21 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
     setIsEditing(false);
   };
 
+  const handleSubscribe = async () => {
+    // TODO:pas pris en compte pour l'instant 
+    const priceId = 'price_XXXXXXXXX'; 
+    
+    setIsSubscribing(true);
+    try {
+      const { url } = await authAPI.subscribe(priceId);
+      window.location.href = url; // Redirection vers Stripe Checkout
+    } catch (error) {
+      console.error('Erreur lors de la souscription:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la souscription');
+      setIsSubscribing(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -144,12 +175,20 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
               <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-yellow-900 mb-1">Compte {user.status}</h3>
-                <p className="text-sm text-yellow-800">
+                <p className="text-sm text-yellow-800 mb-3">
                   Votre compte n'est pas encore actif. Vous avez un accès limité à l'application. 
-                  Veuillez contacter l'administrateur pour activer votre compte et accéder à toutes les fonctionnalités.
+                  Souscrivez à un abonnement pour activer votre compte et accéder à toutes les fonctionnalités.
                 </p>
+                <Button 
+                  onClick={handleSubscribe}
+                  disabled={isSubscribing}
+                  className="gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  {isSubscribing ? 'Redirection...' : 'Souscrire à un abonnement'}
+                </Button>
               </div>
             </div>
           </CardContent>
