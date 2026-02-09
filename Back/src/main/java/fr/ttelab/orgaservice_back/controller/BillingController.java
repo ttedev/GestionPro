@@ -47,6 +47,7 @@ public class BillingController {
     SessionCreateParams params =
         SessionCreateParams.builder()
                            .setMode(SessionCreateParams.Mode.PAYMENT)
+                           .setAllowPromotionCodes(true)
                            .setSuccessUrl(frontendUrl + "/login")
                            .setCancelUrl(frontendUrl )
                            .addLineItem(
