@@ -6,6 +6,8 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -33,6 +35,19 @@ public class User {
   private LocalTime workStartTime = LocalTime.of(7,0);
 
   private LocalTime workEndTime = LocalTime.of(20,0);
+
+  // Jours travaillés - par défaut du lundi au vendredi
+  @ElementCollection(fetch = FetchType.EAGER)
+  @Enumerated(EnumType.STRING)
+  @CollectionTable(name = "user_work_days", joinColumns = @JoinColumn(name = "user_id"))
+  @Column(name = "work_day")
+  private Set<WorkDay> workDays = EnumSet.of(
+      WorkDay.MONDAY,
+      WorkDay.TUESDAY,
+      WorkDay.WEDNESDAY,
+      WorkDay.THURSDAY,
+      WorkDay.FRIDAY
+  );
 
   private String company;
 

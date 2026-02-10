@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -15,7 +15,12 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ChantierDTO, ProjectDTO } from '../api/apiClient';
+import { ChantierDTO, ProjectDTO, CalendarEvent, calendarEventsAPI, EventStatus } from '../api/apiClient';
+
+// Type enrichi pour affichage avec infos du CalendarEvent
+interface ChantierWithEvent extends ChantierDTO {
+  calendarEvent?: CalendarEvent;
+}
 
 interface ProjectDetailPageProps {
   project: ProjectDTO;
@@ -33,59 +38,96 @@ export function ProjectDetailPage({
   onDeleteChantier,
 }: ProjectDetailPageProps) {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
-  const getStatusColor = (status: string) => {
+  // Charger les CalendarEvents pour ce projet
+  const loadCalendarEvents = useCallback(async () => {
+    try {
+      // Récupérer les événements non programmés (qui incluent les chantiers)
+      const unscheduled = await calendarEventsAPI.getUnscheduledEvents();
+      // Et les événements programmés sur une large période
+      const scheduled = await calendarEventsAPI.getAll({
+        startDate: '2020-01-01',
+        endDate: '2030-12-31',
+        eventType: 'chantier'
+      });
+      // Combiner et filtrer pour ce projet seulement
+      const allEvents = [...unscheduled, ...scheduled].filter(e =>
+        e.eventType === 'chantier' &&
+        chantiers.some(c => c.id === e.chantierId)
+      );
+      setCalendarEvents(allEvents);
+    } catch (e) {
+      console.error('Erreur chargement calendar events', e);
+    }
+  }, [chantiers]);
+
+  useEffect(() => {
+    if (chantiers.length > 0) {
+      loadCalendarEvents();
+    }
+  }, [chantiers, loadCalendarEvents]);
+
+  // Enrichir les chantiers avec leurs CalendarEvents
+  const chantiersWithEvents: ChantierWithEvent[] = chantiers.map(c => ({
+    ...c,
+    calendarEvent: calendarEvents.find(e => e.chantierId === c.id)
+  }));
+
+  const getStatusColor = (status?: EventStatus | string) => {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-700';
       case 'confirmed':
         return 'bg-blue-100 text-blue-700';
-      case 'in-progress':
-        return 'bg-yellow-100 text-yellow-700';
       case 'proposed':
         return 'bg-purple-100 text-purple-700';
       case 'cancelled':
         return 'bg-red-100 text-red-700';
+      case 'unscheduled':
+        return 'bg-orange-100 text-orange-700';
       default:
         return 'bg-gray-100 text-gray-600';
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status?: EventStatus | string) => {
     switch (status) {
       case 'completed':
         return <CheckCircle2 className="w-4 h-4" />;
       case 'cancelled':
         return <XCircle className="w-4 h-4" />;
-      case 'in-progress':
+      case 'unscheduled':
         return <AlertCircle className="w-4 h-4" />;
       default:
         return null;
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status?: EventStatus | string) => {
     const labels: Record<string, string> = {
       proposed: 'Proposé',
       confirmed: 'Confirmé',
-      'in-progress': 'En cours',
+      unscheduled: 'Non planifié',
       completed: 'Terminé',
       cancelled: 'Annulé',
     };
-    return labels[status] || status;
+    return labels[status || ''] || status || 'Inconnu';
   };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const upcomingChantiers = chantiers.filter(c => {
-    if (!c.dateHeure) return true;
-    return new Date(c.dateHeure) >= today;
+  const upcomingChantiers = chantiersWithEvents.filter(c => {
+    const date = c.calendarEvent?.date;
+    if (!date) return true; // Non planifié = à venir
+    return new Date(date) >= today;
   });
 
-  const pastChantiers = chantiers.filter(c => {
-    if (!c.dateHeure) return false;
-    return new Date(c.dateHeure) < today;
+  const pastChantiers = chantiersWithEvents.filter(c => {
+    const date = c.calendarEvent?.date;
+    if (!date) return false;
+    return new Date(date) < today;
   });
 
   const filteredChantiers =
@@ -93,7 +135,7 @@ export function ProjectDetailPage({
       ? upcomingChantiers
       : filter === 'past'
       ? pastChantiers
-      : chantiers;
+      : chantiersWithEvents;
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Non planifié';
@@ -169,15 +211,15 @@ export function ProjectDetailPage({
 
             <div className="grid grid-cols-3 gap-4 pt-4 border-t">
               <div>
-                <div className="text-2xl text-green-600">{project.chantiers?.filter(c => c.status === 'completed').length || 0}</div>
+                <div className="text-2xl text-green-600">{chantiersWithEvents.filter(c => c.calendarEvent?.status === 'completed').length || 0}</div>
                 <div className="text-sm text-gray-500">Terminés</div>
               </div>
               <div>
-                <div className="text-2xl text-blue-600">{project.chantiers?.filter(c => c.status != 'completed').length || 0}</div>
+                <div className="text-2xl text-blue-600">{chantiersWithEvents.filter(c => c.calendarEvent?.status !== 'completed').length || 0}</div>
                 <div className="text-sm text-gray-500">À venir</div>
               </div>
               <div>
-                <div className="text-2xl text-gray-600">{project.chantiers?.length || 0}</div>
+                <div className="text-2xl text-gray-600">{chantiersWithEvents.length || 0}</div>
                 <div className="text-sm text-gray-500">Total</div>
               </div>
             </div>
@@ -207,30 +249,42 @@ export function ProjectDetailPage({
                 <p className="text-gray-500">Aucun chantier trouvé</p>
               </Card>
             ) : (
-              filteredChantiers.map((chantier) => (
+              filteredChantiers.map((chantier) => {
+                const event = chantier.calendarEvent;
+                const status = event?.status || 'unscheduled';
+                const date = event?.date;
+                const startTime = event?.startTime;
+
+                return (
                 <Card key={chantier.id} className="p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-3">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <Badge className={getStatusColor(chantier.status)}>
+                        <Badge className={getStatusColor(status)}>
                           <div className="flex items-center gap-1">
-                            {getStatusIcon(chantier.status)}
-                            <span>{getStatusLabel(chantier.status)}</span>
+                            {getStatusIcon(status)}
+                            <span>{getStatusLabel(status)}</span>
                           </div>
                         </Badge>
-                        {chantier.dateHeure && (
+                        {date && (
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Calendar className="w-4 h-4" />
-                            {formatDate(chantier.dateHeure)}
+                            {formatDate(date)}
+                          </div>
+                        )}
+                        {chantier.monthTarget && !date && (
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Calendar className="w-4 h-4" />
+                            Cible: {chantier.monthTarget}
                           </div>
                         )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        {chantier.dateHeure && (
+                        {startTime && (
                           <div className="flex items-center gap-2 text-gray-600">
                             <Clock className="w-4 h-4" />
-                            {chantier.dateHeure} - {formatDuration(chantier.dureeEnMinutes || 0)}
+                            {startTime} - {formatDuration(chantier.durationMinutes || 0)}
                           </div>
                         )}
                       </div>
@@ -267,7 +321,7 @@ export function ProjectDetailPage({
                     </div>
                   </div>
                 </Card>
-              ))
+              );})
             )}
           </TabsContent>
         </Tabs>

@@ -25,7 +25,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from './ui/collapsible';
-import { clientsAPI, projectsAPI, chantiersAPI, remarksAPI, type Client as ClientType, type ProjectDTO, type ChantierDTO, type Remark as ApiRemark } from '../api/apiClient';
+import { clientsAPI, projectsAPI, remarksAPI, calendarEventsAPI, type Client as ClientType, type ProjectDTO, type ChantierDTO, type Remark as ApiRemark, type CalendarEvent, type EventStatus } from '../api/apiClient';
 import { ProjectForm } from './ProjectForm';
 import { EditClientDialog } from './EditClientDialog';
 import { formatPhone } from '../utils/formatters';
@@ -54,11 +54,20 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
   const [clientLoading, setClientLoading] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  interface UIChantier extends ChantierDTO { id: string; }
+  // Type enrichi pour affichage avec infos du CalendarEvent
+  interface UIChantier extends ChantierDTO {
+    id: string;
+    calendarEvent?: CalendarEvent;
+    // Propriétés dérivées du CalendarEvent pour faciliter l'affichage
+    status?: EventStatus;
+    date?: string;
+    startTime?: string;
+  }
   const [upcomingChantiers, setUpcomingChantiers] = useState<UIChantier[]>([]);
   const [pastChantiers, setPastChantiers] = useState<UIChantier[]>([]);
   const [chantiersLoading, setChantiersLoading] = useState(false);
   const [chantiersError, setChantiersError] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   interface UIRemark { id: number; date: string; time: string; text: string; images: string[]; }
   const [remarks, setRemarks] = useState<UIRemark[]>([]);
@@ -86,22 +95,55 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
 
   const loadProjects = useCallback(async () => {
     setProjectsLoading(true); setProjectsError(null);
-    try { const data = await projectsAPI.getAll({ clientId }); 
-    setListProjects(data); 
-        const now = new Date();
+    try {
+      const data = await projectsAPI.getAll({ clientId });
+      setListProjects(data);
+
+      // Charger les CalendarEvents pour ce client
+      const [unscheduled, scheduled] = await Promise.all([
+        calendarEventsAPI.getUnscheduledEvents(),
+        calendarEventsAPI.getAll({
+          startDate: '2020-01-01',
+          endDate: '2030-12-31',
+          eventType: 'chantier'
+        })
+      ]);
+
+      // Filtrer les événements pour ce client
+      const clientEvents = [...unscheduled, ...scheduled].filter(e => e.clientId === clientId);
+      setCalendarEvents(clientEvents);
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
       const upcoming: UIChantier[] = [];
       const past: UIChantier[] = [];
-    data.forEach(project => {
+
+      data.forEach(project => {
         project.chantiers?.forEach(chantier => {
-          if (!chantier.dateHeure) {
-            upcoming.push(chantier);
-          }else {
-          const d = new Date(chantier.dateHeure);
-          if (d.getTime() >= now.setHours(0,0,0,0)) upcoming.push(chantier); else past.push(chantier);
+          // Trouver le CalendarEvent associé
+          const event = clientEvents.find(e => e.chantierId === chantier.id);
+          const enrichedChantier: UIChantier = {
+            ...chantier,
+            calendarEvent: event,
+            status: event?.status || 'unscheduled',
+            date: event?.date || undefined,
+            startTime: event?.startTime || undefined,
+          };
+
+          if (!event?.date) {
+            upcoming.push(enrichedChantier);
+          } else {
+            const d = new Date(event.date);
+            if (d.getTime() >= now.getTime()) {
+              upcoming.push(enrichedChantier);
+            } else {
+              past.push(enrichedChantier);
+            }
           }
         });
       });
-          setUpcomingChantiers(upcoming);
+
+      setUpcomingChantiers(upcoming);
       setPastChantiers(past);
     }
     catch (e: any) { setProjectsError(e.message || 'Erreur projets'); }
@@ -135,13 +177,18 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
     prevProjectDialogOpen.current = isProjectDialogOpen;
   }, [isProjectDialogOpen, loadProjects]);
 
-  const handleConfirmChantier = (id: string) => {
-    setUpcomingChantiers(prev => prev.map(chantier =>
-      chantier.id === id && chantier.status === "en_attente"
-        ? { ...chantier, status: "planifiee" }
-        : chantier
-    ));
-    // TODO: appeler endpoint backend de confirmation si disponible
+  const handleConfirmChantier = async (id: string) => {
+    try {
+      await calendarEventsAPI.confirm(id);
+      // Mettre à jour l'état local
+      setUpcomingChantiers(prev => prev.map(chantier =>
+        chantier.id === id
+          ? { ...chantier, status: 'confirmed' as EventStatus }
+          : chantier
+      ));
+    } catch (e: any) {
+      console.error('Erreur confirmation chantier', e);
+    }
   };
 
   const handleEdit = (project: ProjectDTO) => {
@@ -158,9 +205,13 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
   };
 
 
-  const handleStatusChange = (id: string, status: 'planifiee' | 'en_attente' | 'terminee' | 'annulee') => {
-    setUpcomingChantiers(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    // TODO patch backend
+  const handleStatusChange = async (id: string, status: EventStatus) => {
+    try {
+      await calendarEventsAPI.updateStatus(id, status);
+      setUpcomingChantiers(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    } catch (e: any) {
+      console.error('Erreur changement status', e);
+    }
   };
 
   const handleAddRemark = async () => {
@@ -371,9 +422,9 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                     {project.description}
                   </p>
                   <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                    <span>{project.chantiers?.filter(c => c.status != 'terminee').length} à venir</span>
+                    <span>{project.chantiers?.length ? upcomingChantiers.filter(c => c.projectId === project.id).length : 0} à venir</span>
                     <span>•</span>
-                    <span>{project.chantiers?.filter(c => c.status === 'terminee').length} terminés</span>
+                    <span>{project.chantiers?.length ? pastChantiers.filter(c => c.projectId === project.id && c.status === 'completed').length : 0} terminés</span>
                                         <Button
                         onClick={() => handleEdit(project)}
                         variant="outline"
@@ -392,7 +443,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
             </div>
           </Card>
 
-          {upcomingChantiers.some(i => i.status === 'en_attente') && (
+          {upcomingChantiers.some(i => i.status === 'proposed') && (
             <Card className="p-4 bg-yellow-50 border-yellow-200">
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600" />
@@ -401,7 +452,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                     Chantiers proposés à valider
                   </p>
                   <p className="text-sm text-gray-600">
-                    {upcomingChantiers.filter(i => i.status === 'en_attente').length} chantier{upcomingChantiers.filter(i => i.status === 'en_attente').length > 1 ? 's' : ''} en attente de validation
+                    {upcomingChantiers.filter(i => i.status === 'proposed').length} chantier{upcomingChantiers.filter(i => i.status === 'proposed').length > 1 ? 's' : ''} en attente de validation
                   </p>
                 </div>
               </div>
@@ -417,56 +468,74 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                 <div
                   key={chantier.id}
                   className={`flex gap-4 p-4 border rounded-lg transition-all ${
-                    chantier.status === 'en_attente'
+                    chantier.status === 'proposed'
                       ? 'border-yellow-300 bg-yellow-50'
-                      : chantier.status === 'planifiee'
+                      : chantier.status === 'confirmed'
                       ? 'border-green-300 bg-green-50'
+                      : chantier.status === 'unscheduled'
+                      ? 'border-orange-300 bg-orange-50'
                       : 'border-gray-200 hover:border-green-300'
                   }`}
                 >
                   <div className={`flex items-center justify-center w-12 h-12 rounded-lg flex-shrink-0 ${
-                    chantier.status === 'en_attente'
+                    chantier.status === 'proposed'
                       ? 'bg-yellow-100'
-                      : chantier.status === 'planifiee'
+                      : chantier.status === 'confirmed'
                       ? 'bg-green-100'
+                      : chantier.status === 'unscheduled'
+                      ? 'bg-orange-100'
                       : 'bg-blue-50'
                   }`}>
                     <Calendar className={`w-6 h-6 ${
-                      chantier.status === 'en_attente'
+                      chantier.status === 'proposed'
                         ? 'text-yellow-600'
-                        : chantier.status === 'planifiee'
+                        : chantier.status === 'confirmed'
                         ? 'text-green-600'
+                        : chantier.status === 'unscheduled'
+                        ? 'text-orange-600'
                         : 'text-blue-600'
                     }`} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={
-                        chantier.status === 'en_attente'
+                        chantier.status === 'proposed'
                           ? 'text-yellow-700'
-                          : chantier.status === 'planifiee'
+                          : chantier.status === 'confirmed'
                           ? 'text-green-700'
+                          : chantier.status === 'unscheduled'
+                          ? 'text-orange-700'
                           : 'text-gray-900'
-                      }>{formatDate(chantier.dateHeure)}</span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-600">{formatTime(chantier.dateHeure)}</span>
-                      {chantier.status === 'en_attente' && (
+                      }>{chantier.date ? formatDate(chantier.date) : (chantier.monthTarget || 'Non planifié')}</span>
+                      {chantier.startTime && (
+                        <>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-600">{chantier.startTime}</span>
+                        </>
+                      )}
+                      {chantier.status === 'proposed' && (
                         <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs rounded-full flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           À valider
                         </span>
                       )}
-                      {chantier.status === 'planifiee' && (
+                      {chantier.status === 'confirmed' && (
                         <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs rounded-full flex items-center gap-1">
                           <Check className="w-3 h-3" />
-                          Confirmée
+                          Confirmé
+                        </span>
+                      )}
+                      {chantier.status === 'unscheduled' && (
+                        <span className="px-2 py-0.5 bg-orange-200 text-orange-800 text-xs rounded-full flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Non planifié
                         </span>
                       )}
                     </div>
                     <p className="text-gray-900 mb-1">{chantier.projectName}</p>
                     <p className="text-sm text-gray-600">{chantier.projectName}</p>
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {chantier.status === 'en_attente' && (
+                      {chantier.status === 'proposed' && (
                         <Button
                           onClick={() => handleConfirmChantier(chantier.id)}
                           className="bg-yellow-500 hover:bg-yellow-600 text-white"
@@ -476,9 +545,9 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                           Valider
                         </Button>
                       )}
-                      {chantier.status === 'planifiee' && (
+                      {chantier.status === 'confirmed' && (
                         <Button
-                          onClick={() => handleStatusChange(chantier.id, 'en_attente')}
+                          onClick={() => handleStatusChange(chantier.id, 'proposed')}
                           className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
                           size="sm"
                         >
@@ -514,36 +583,40 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                     <div
                       key={chantier.id}
                       className={`flex gap-4 p-4 border rounded-lg transition-colors ${
-                        chantier.status === 'terminee'
+                        chantier.status === 'completed'
                           ? 'border-green-200 bg-green-50 hover:border-green-300'
                           : 'border-orange-200 bg-orange-50 hover:border-orange-300'
                       }`}
                     >
                       <div className={`flex items-center justify-center w-12 h-12 rounded-lg flex-shrink-0 ${
-                        chantier.status === 'terminee' ? 'bg-green-100' : 'bg-orange-100'
+                        chantier.status === 'completed' ? 'bg-green-100' : 'bg-orange-100'
                       }`}>
                         <Calendar className={`w-6 h-6 ${
-                          chantier.status === 'terminee' ? 'text-green-600' : 'text-orange-600'
+                          chantier.status === 'completed' ? 'text-green-600' : 'text-orange-600'
                         }`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`px-2 py-0.5 rounded-full text-xs ${
-                              chantier.status === 'terminee'
+                              chantier.status === 'completed'
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-orange-100 text-orange-700'
                             }`}>
-                              {chantier.status === 'terminee' ? 'Effectuée' : 'Non effectuée'}
+                              {chantier.status === 'completed' ? 'Effectué' : 'Non effectué'}
                             </span>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{chantier.projectName}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <Calendar className="w-3 h-3" />
-                          <span>{formatDate(chantier.dateHeure)}</span>
-                          <Clock className="w-3 h-3 ml-2" />
-                          <span>{formatTime(chantier.dateHeure)}</span>
+                          <span>{chantier.date ? formatDate(chantier.date) : 'Date inconnue'}</span>
+                          {chantier.startTime && (
+                            <>
+                              <Clock className="w-3 h-3 ml-2" />
+                              <span>{chantier.startTime}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

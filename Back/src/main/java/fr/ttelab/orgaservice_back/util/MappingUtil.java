@@ -69,11 +69,12 @@ public class MappingUtil {
     dto.setClientName(c.getClient().getName());
     dto.setProjectId(String.valueOf(c.getProject().getId()));
     dto.setProjectName(c.getProject().getTitle());
-    dto.setStatus(c.getStatus());
-    dto.setDateHeure(c.getDateHeure());
+    dto.setMonthTarget(c.getMonthTarget());
     dto.setCreatedAt(c.getCreatedAt());
-    if (c.getDateHeure() != null) dto.setDateHeureEnd(c.getDateHeure().plusMinutes(c.getDureeEnMinutes()));
     dto.setDurationMinutes(c.getDureeEnMinutes());
+    if (c.getCalendarEvent() != null) {
+      dto.setCalendarEventId(String.valueOf(c.getCalendarEvent().getId()));
+    }
     return dto;
   }
 
@@ -118,19 +119,30 @@ public class MappingUtil {
     return dto;
   }
 
+  /**
+   * Convertit un Chantier en CalendarEventDTO.
+   * Si le Chantier a un CalendarEvent associé, utilise ses données.
+   * Sinon, crée un DTO avec les infos de base du Chantier (cas legacy).
+   */
   public static CalendarEventDTO toCalendarEventDTO(Chantier chantier) {
+    CalendarEvent event = chantier.getCalendarEvent();
+
+    // Si un CalendarEvent existe, utiliser la méthode principale
+    if (event != null) {
+      return toCalendarEventDTO(event);
+    }
+
+    // Fallback pour les chantiers sans CalendarEvent (cas legacy/migration)
     CalendarEventDTO calendarEventDTO = new CalendarEventDTO();
     calendarEventDTO.setId(String.valueOf(chantier.getId()));
     calendarEventDTO.setEventType(fr.ttelab.orgaservice_back.entity.EventType.chantier);
     calendarEventDTO.setClientId(String.valueOf(chantier.getClient().getId()));
     calendarEventDTO.setClientName(chantier.getClient().getName());
     calendarEventDTO.setChantierId(String.valueOf(chantier.getId()));
-    calendarEventDTO.setDate(chantier.getDateHeure() != null ? chantier.getDateHeure().toLocalDate() : null);
-    calendarEventDTO.setStartTime(chantier.getDateHeure() != null ? chantier.getDateHeure().toLocalTime() : null);
     calendarEventDTO.setDuration(chantier.getDureeEnMinutes());
     calendarEventDTO.setTitle(chantier.getProject().getTitle());
     calendarEventDTO.setDescription(chantier.getProject().getDescription());
-    calendarEventDTO.setStatus(chantier.getStatus());
+    calendarEventDTO.setStatus(EventStatus.unscheduled);
     return calendarEventDTO.computeDayIndex();
   }
 

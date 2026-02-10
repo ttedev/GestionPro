@@ -37,15 +37,13 @@ public class Chantier {
 
   private String monthTarget; // format "MM/yyyy"
 
-
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private EventStatus status = EventStatus.proposed;
-
-  private LocalDateTime dateHeure;
-
   @Column(nullable = false)
   private Integer dureeEnMinutes; // durée en minutes
+
+  @OneToOne(mappedBy = "chantier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  private CalendarEvent calendarEvent;
 
   private LocalDateTime createdAt;
 

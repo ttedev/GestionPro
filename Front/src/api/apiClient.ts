@@ -71,14 +71,13 @@ export interface PlanTravauxItemDTO {
 export interface ChantierDTO {
   id: string;
   clientId: string;
+  clientName: string;
+  projectId?: string;
   projectName: string;
-  status: EventStatus;
-  dateHeure: string; // LocalDateTime ISO
-  projectId?: string; // optionnel si découplé
+  calendarEventId?: string; // ID du CalendarEvent associé
+  monthTarget?: string; // Mois cible au format "yyyy-MM"
   createdAt?: string;
-  // Champs supplémentaires potentiels
-  endDate?: string | null;
-  dureeEnMinutes?: number;
+  durationMinutes?: number;
 }
 
 export interface ProjectDTO {
@@ -452,18 +451,19 @@ export const projectsAPI = {
 };
 
 // =============================================================================
-// CHANTIERS (nouvelle API - certaines opérations manquent côté backend)
+// CHANTIERS (nouvelle API - les chantiers sont liés à des CalendarEvents)
+// Note: dateHeure et status sont désormais sur le CalendarEvent associé
 // =============================================================================
 
 export const chantiersAPI = {
   /**
    * Liste des chantiers (id projet / client optionnels)
+   * Note: Pour avoir date/status, utilisez calendarEventsAPI
    */
-  getAll: async (filters?: { projectId?: string; clientId?: string; status?: EventStatus }): Promise<ChantierDTO[]> => {
+  getAll: async (filters?: { projectId?: string; clientId?: string }): Promise<ChantierDTO[]> => {
     const url = new URL(`${API_BASE_URL}/chantiers`);
     if (filters?.projectId) url.searchParams.append('projectId', filters.projectId);
     if (filters?.clientId) url.searchParams.append('clientId', filters.clientId);
-    if (filters?.status) url.searchParams.append('status', filters.status);
     const response = await fetch(url.toString(), { headers: getHeaders() });
     return handleResponse<ChantierDTO[]>(response);
   },
@@ -472,62 +472,6 @@ export const chantiersAPI = {
    */
   getById: async (id: string): Promise<ChantierDTO> => {
     const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, { headers: getHeaders() });
-    return handleResponse<ChantierDTO>(response);
-  },
-  /**
-   * Créer un chantier (ENDPOINT À AJOUTER côté backend si absent)
-   */
-  create: async (chantier: {
-    projectId?: string;
-    clientId: string;
-    title: string;
-    description?: string;
-    dateHeure: string; // ISO LocalDateTime
-    status?: EventStatus;
-    dureeEnMinutes?: number;
-    location?: string;
-  }): Promise<ChantierDTO> => {
-    const response = await fetch(`${API_BASE_URL}/chantiers`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(chantier),
-    });
-    return handleResponse<ChantierDTO>(response);
-  },
-  /**
-   * Mettre à jour un chantier
-   */
-  update: async (id: string, patch: Partial<{
-    title: string;
-    description: string;
-    status: EventStatus;
-    dateHeure: string;
-    dureeEnMinutes: number;
-    location: string;
-  }>): Promise<ChantierDTO> => {
-    const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(patch),
-    });
-    return handleResponse<ChantierDTO>(response);
-  },
-  /**
-   * Supprimer un chantier
-   */
-  delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, { method: 'DELETE', headers: getHeaders() });
-    return handleResponse<void>(response);
-  },
-  /**
-   * Changer statut (PATCH dédié recommandé côté backend)
-   */
-  updateStatus: async (id: string, status: EventStatus): Promise<ChantierDTO> => {
-    const response = await fetch(`${API_BASE_URL}/chantiers/${id}/status`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify({ status }),
-    });
     return handleResponse<ChantierDTO>(response);
   },
 };

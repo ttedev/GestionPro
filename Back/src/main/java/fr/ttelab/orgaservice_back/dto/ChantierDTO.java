@@ -1,7 +1,6 @@
 package fr.ttelab.orgaservice_back.dto;
 
 
-import fr.ttelab.orgaservice_back.entity.EventStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,9 +12,8 @@ public class ChantierDTO {
   private String clientName;
   private String projectId;
   private String projectName;
-  private EventStatus status;
-  private LocalDateTime dateHeure;
-  private LocalDateTime dateHeureEnd;
+  private String calendarEventId;
+  private String monthTarget;
   private LocalDateTime createdAt;
   private Integer durationMinutes;
 }

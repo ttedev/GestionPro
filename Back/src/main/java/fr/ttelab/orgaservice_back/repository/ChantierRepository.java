@@ -18,13 +18,14 @@ public interface ChantierRepository extends JpaRepository<Chantier, UUID> {
 
   List<Chantier> findByOwner(User owner);
 
-  @Query("select e from Chantier e where e.owner = :owner " +
-      "and (e.dateHeure is null ) ")
-  List<Chantier> findByOwnerUnsechduled(User owner);
+  @Query("select c from Chantier c where c.owner = :owner " +
+      "and (c.calendarEvent is null or c.calendarEvent.status = 'unscheduled') ")
+  List<Chantier> findByOwnerUnsechduled(@Param("owner") User owner);
 
-  @Query("select e from Chantier e where e.owner = :owner " +
-      "and (:startDate is null or e.dateHeure >= :startDate) " +
-      "and (:endDate is null or e.dateHeure <= :endDate)")
+  @Query("select c from Chantier c left join c.calendarEvent e where c.owner = :owner " +
+      "and e is not null " +
+      "and (:startDate is null or e.dateTime >= :startDate) " +
+      "and (:endDate is null or e.dateTime <= :endDate)")
   List<Chantier> findFiltered(@Param("owner") User owner,
       @Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate);

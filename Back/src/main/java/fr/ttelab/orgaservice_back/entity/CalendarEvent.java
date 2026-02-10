@@ -31,11 +31,11 @@ public class CalendarEvent {
   @EqualsAndHashCode.Exclude
   private Client client;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "chantier_id")
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
-  private Chantier chantier; // nullable
+  private Chantier chantier; // nullable - un CalendarEvent peut être lié à un chantier unique
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "project_id")

@@ -1,7 +1,7 @@
 // Types pour le système de gestion d'interventions et chantiers
 
 export type InterventionType = 'recurring' | 'one-shot';
-export type ChantierStatus = 'proposed' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+export type ChantierStatus = 'unscheduled' | 'proposed' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
 export type EventType = 'chantier' | 'rdv' | 'prospection' | 'autre';
 
 // Plan mensuel pour une intervention récurrente
