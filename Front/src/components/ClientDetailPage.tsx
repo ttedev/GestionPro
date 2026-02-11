@@ -178,14 +178,19 @@ export function ClientDetailPage({ clientId, onBack, onNavigateToProject }: Clie
     prevProjectDialogOpen.current = isProjectDialogOpen;
   }, [isProjectDialogOpen, loadProjects]);
 
-  const handleConfirmChantier = async (id: string) => {
+  const handleConfirmChantier = async (chantier: UIChantier) => {
+    const calendarEventId = chantier.calendarEvent?.id || chantier.calendarEventId;
+    if (!calendarEventId) {
+      console.error('Pas de CalendarEvent associé à ce chantier');
+      return;
+    }
     try {
-      await calendarEventsAPI.confirm(id);
+      await calendarEventsAPI.confirm(calendarEventId);
       // Mettre à jour l'état local
-      setUpcomingChantiers(prev => prev.map(chantier =>
-        chantier.id === id
-          ? { ...chantier, status: 'confirmed' as EventStatus }
-          : chantier
+      setUpcomingChantiers(prev => prev.map(c =>
+        c.id === chantier.id
+          ? { ...c, status: 'confirmed' as EventStatus }
+          : c
       ));
     } catch (e: any) {
       console.error('Erreur confirmation chantier', e);
@@ -206,10 +211,15 @@ export function ClientDetailPage({ clientId, onBack, onNavigateToProject }: Clie
   };
 
 
-  const handleStatusChange = async (id: string, status: EventStatus) => {
+  const handleStatusChange = async (chantier: UIChantier, status: EventStatus) => {
+    const calendarEventId = chantier.calendarEvent?.id || chantier.calendarEventId;
+    if (!calendarEventId) {
+      console.error('Pas de CalendarEvent associé à ce chantier');
+      return;
+    }
     try {
-      await calendarEventsAPI.updateStatus(id, status);
-      setUpcomingChantiers(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+      await calendarEventsAPI.updateStatus(calendarEventId, status);
+      setUpcomingChantiers(prev => prev.map(c => c.id === chantier.id ? { ...c, status } : c));
     } catch (e: any) {
       console.error('Erreur changement status', e);
     }
@@ -543,7 +553,7 @@ export function ClientDetailPage({ clientId, onBack, onNavigateToProject }: Clie
                     <div className="flex flex-wrap gap-2 mt-3">
                       {chantier.status === 'proposed' && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); handleConfirmChantier(chantier.id); }}
+                          onClick={(e) => { e.stopPropagation(); handleConfirmChantier(chantier); }}
                           className="bg-yellow-500 hover:bg-yellow-600 text-white"
                           size="sm"
                         >
@@ -553,7 +563,7 @@ export function ClientDetailPage({ clientId, onBack, onNavigateToProject }: Clie
                       )}
                       {chantier.status === 'confirmed' && (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(chantier.id, 'proposed'); }}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(chantier, 'proposed'); }}
                           className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
                           size="sm"
                         >
