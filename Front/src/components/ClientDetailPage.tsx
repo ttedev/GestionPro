@@ -33,9 +33,10 @@ import { formatPhone } from '../utils/formatters';
 interface ClientDetailPageProps {
   clientId: string;
   onBack: () => void;
+  onNavigateToProject?: (projectId: string) => void;
 }
 
-export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
+export function ClientDetailPage({ clientId, onBack, onNavigateToProject }: ClientDetailPageProps) {
   const [listProjects, setListProjects] = useState<ProjectDTO[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -407,13 +408,17 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
               </Dialog>
             <div className="space-y-3">
               {listProjects.map(project => (
-                <div key={project.id} className="flex gap-4 p-4 border border-blue-200 bg-blue-50 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
+                <div
+                  key={project.id}
+                  className="flex gap-4 p-4 border border-blue-200 bg-blue-50 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => onNavigateToProject?.(project.id)}
+                >
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-100 flex-shrink-0">
                     <Calendar className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-gray-900">{project.title}</span>
+                      <span className="text-gray-900 hover:text-green-600">{project.title}</span>
                       <span className="px-2 py-0.5 bg-blue-200 text-blue-800 text-xs rounded-full">
                         {project.dureeMois} mois
                       </span>
@@ -426,7 +431,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                     <span>•</span>
                     <span>{project.chantiers?.length ? pastChantiers.filter(c => c.projectId === project.id && c.status === 'completed').length : 0} terminés</span>
                                         <Button
-                        onClick={() => handleEdit(project)}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
                         variant="outline"
                         size="sm"
                       >
@@ -467,7 +472,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
               {upcomingChantiers.map((chantier) => (
                 <div
                   key={chantier.id}
-                  className={`flex gap-4 p-4 border rounded-lg transition-all ${
+                  className={`flex gap-4 p-4 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
                     chantier.status === 'proposed'
                       ? 'border-yellow-300 bg-yellow-50'
                       : chantier.status === 'confirmed'
@@ -476,6 +481,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                       ? 'border-orange-300 bg-orange-50'
                       : 'border-gray-200 hover:border-green-300'
                   }`}
+                  onClick={() => chantier.projectId && onNavigateToProject?.(chantier.projectId)}
                 >
                   <div className={`flex items-center justify-center w-12 h-12 rounded-lg flex-shrink-0 ${
                     chantier.status === 'proposed'
@@ -537,7 +543,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                     <div className="flex flex-wrap gap-2 mt-3">
                       {chantier.status === 'proposed' && (
                         <Button
-                          onClick={() => handleConfirmChantier(chantier.id)}
+                          onClick={(e) => { e.stopPropagation(); handleConfirmChantier(chantier.id); }}
                           className="bg-yellow-500 hover:bg-yellow-600 text-white"
                           size="sm"
                         >
@@ -547,7 +553,7 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                       )}
                       {chantier.status === 'confirmed' && (
                         <Button
-                          onClick={() => handleStatusChange(chantier.id, 'proposed')}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(chantier.id, 'proposed'); }}
                           className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
                           size="sm"
                         >
@@ -582,11 +588,12 @@ export function ClientDetailPage({ clientId, onBack }: ClientDetailPageProps) {
                   {pastChantiers.map((chantier) => (
                     <div
                       key={chantier.id}
-                      className={`flex gap-4 p-4 border rounded-lg transition-colors ${
+                      className={`flex gap-4 p-4 border rounded-lg transition-colors cursor-pointer hover:shadow-md ${
                         chantier.status === 'completed'
                           ? 'border-green-200 bg-green-50 hover:border-green-300'
                           : 'border-orange-200 bg-orange-50 hover:border-orange-300'
                       }`}
+                      onClick={() => chantier.projectId && onNavigateToProject?.(chantier.projectId)}
                     >
                       <div className={`flex items-center justify-center w-12 h-12 rounded-lg flex-shrink-0 ${
                         chantier.status === 'completed' ? 'bg-green-100' : 'bg-orange-100'

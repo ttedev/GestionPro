@@ -13,12 +13,15 @@ import {
 } from './ui/dialog';
 import { ProjectForm } from './ProjectForm';
 import { ProjectDetailPage } from './ProjectDetailPage';
+import { EditChantierDialog } from './EditChantierDialog';
 import { projectsAPI, chantiersAPI, type ProjectDTO, type ChantierDTO } from '../api/apiClient';
 
+interface ProjectsPageProps {
+  onNavigateToClient?: (clientId: string) => void;
+  projectId?: string; // ID du projet à pré-sélectionner
+}
 
-
-
-export function ProjectsPage() {
+export function ProjectsPage({ onNavigateToClient, projectId }: ProjectsPageProps) {
   const [filter, setFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState<ProjectDTO | null>(null);
   const [projects, setProjects] = useState<ProjectDTO[]>([]);
@@ -26,6 +29,8 @@ export function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [chantiersByProject, setChantiersByProject] = useState<Record<string, ChantierDTO[]>>({});
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  const [editingChantier, setEditingChantier] = useState<ChantierDTO | null>(null);
+  const [isEditChantierDialogOpen, setIsEditChantierDialogOpen] = useState(false);
 
 
   const loadProjects = useCallback(async () => {
@@ -33,10 +38,17 @@ export function ProjectsPage() {
     try {
       const data = await projectsAPI.getAll();
       setProjects(data);
+      // Pré-sélectionner le projet si projectId est fourni
+      if (projectId) {
+        const project = data.find(p => p.id === projectId);
+        if (project) {
+          setSelectedProject(project);
+        }
+      }
     } catch (e: any) {
       setError(e.message || 'Erreur lors du chargement des projets');
     } finally { setLoading(false); }
-  }, []);
+  }, [projectId]);
 
   const loadChantiersForProject = useCallback(async (projectId: string) => {
     try {
@@ -60,10 +72,44 @@ export function ProjectsPage() {
     setSelectedProject(project);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Supprimer ce projet ?')) {
+  const handleDelete = async (id: string) => {
+    try {
+      await projectsAPI.delete(id);
       setProjects(projects.filter(p => p.id !== id));
-      // TODO: projectsAPI.delete(id)
+    } catch (e: any) {
+      setError(e.message || 'Erreur lors de la suppression du projet');
+    }
+  };
+
+  const handleEditChantier = (chantier: ChantierDTO) => {
+    setEditingChantier(chantier);
+    setIsEditChantierDialogOpen(true);
+  };
+
+  const handleChantierUpdated = (updatedChantier: ChantierDTO) => {
+    // Mettre à jour le chantier dans la liste
+    if (selectedProject) {
+      setChantiersByProject(prev => ({
+        ...prev,
+        [selectedProject.id]: prev[selectedProject.id]?.map(c =>
+          c.id === updatedChantier.id ? updatedChantier : c
+        ) || []
+      }));
+    }
+  };
+
+  const handleDeleteChantier = async (chantierId: string) => {
+    try {
+      await chantiersAPI.delete(chantierId);
+      // Mettre à jour la liste des chantiers pour le projet sélectionné
+      if (selectedProject) {
+        setChantiersByProject(prev => ({
+          ...prev,
+          [selectedProject.id]: prev[selectedProject.id]?.filter(c => c.id !== chantierId) || []
+        }));
+      }
+    } catch (e: any) {
+      setError(e.message || 'Erreur lors de la suppression du chantier');
     }
   };
 
@@ -80,11 +126,22 @@ export function ProjectsPage() {
     }
     // réutilise l'ancienne page détail temporairement
     return (
-      <ProjectDetailPage
-        project={selectedProject as any}
-        chantiers={chantiers as any}
-        onBack={() => setSelectedProject(null)}
-      />
+      <>
+        <ProjectDetailPage
+          project={selectedProject as any}
+          chantiers={chantiers as any}
+          onBack={() => setSelectedProject(null)}
+          onEditChantier={handleEditChantier}
+          onDeleteChantier={handleDeleteChantier}
+          onNavigateToClient={onNavigateToClient}
+        />
+        <EditChantierDialog
+          chantier={editingChantier}
+          open={isEditChantierDialogOpen}
+          onOpenChange={setIsEditChantierDialogOpen}
+          onUpdated={handleChantierUpdated}
+        />
+      </>
     );
   }
 
@@ -173,7 +230,16 @@ export function ProjectsPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <User className="w-4 h-4" />
-                  {project.clientName}
+                  {onNavigateToClient && project.clientId ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onNavigateToClient(project.clientId); }}
+                      className="text-green-600 hover:text-green-700 hover:underline font-medium"
+                    >
+                      {project.clientName}
+                    </button>
+                  ) : (
+                    <span>{project.clientName}</span>
+                  )}
                 </div>
                 {project.type === 'recurrent' && (
                   <>

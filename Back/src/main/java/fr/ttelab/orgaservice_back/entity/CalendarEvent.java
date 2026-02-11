@@ -25,11 +25,11 @@ public class CalendarEvent {
   @Column(nullable = false)
   private EventType eventType; // chantier | rdv | prospection | autre
 
-  @ManyToOne(optional = false, fetch = FetchType.LAZY)
+  @ManyToOne(optional = true, fetch = FetchType.LAZY)
   @JoinColumn(name = "client_id")
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
-  private Client client;
+  private Client client; // nullable - un événement peut ne pas être lié à un client
 
   @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "chantier_id")

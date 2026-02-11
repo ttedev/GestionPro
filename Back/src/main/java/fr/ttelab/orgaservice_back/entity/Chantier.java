@@ -40,7 +40,7 @@ public class Chantier {
   @Column(nullable = false)
   private Integer dureeEnMinutes; // durée en minutes
 
-  @OneToOne(mappedBy = "chantier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @OneToOne(mappedBy = "chantier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   @ToString.Exclude
   @EqualsAndHashCode.Exclude
   private CalendarEvent calendarEvent;

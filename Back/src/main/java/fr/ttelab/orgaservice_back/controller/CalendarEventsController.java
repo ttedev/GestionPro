@@ -3,6 +3,7 @@ package fr.ttelab.orgaservice_back.controller;
 import fr.ttelab.orgaservice_back.dto.CalendarEventDTO;
 import fr.ttelab.orgaservice_back.entity.*;
 import fr.ttelab.orgaservice_back.repository.CalendarEventRepository;
+import fr.ttelab.orgaservice_back.repository.ClientRepository;
 import fr.ttelab.orgaservice_back.util.MappingUtil;
 import fr.ttelab.orgaservice_back.util.SecurityUtil;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @PreAuthorize("hasRole('ACTIVE')")
 public class CalendarEventsController {
   private final CalendarEventRepository eventRepository;
+  private final ClientRepository clientRepository;
   private final SecurityUtil securityUtil;
 
   @GetMapping
@@ -53,6 +55,49 @@ public class CalendarEventsController {
     var owner = securityUtil.getCurrentUser();
     return eventRepository.findByOwnerUnscheduled(owner).stream()
         .map(MappingUtil::toCalendarEventDTO).toList();
+  }
+
+  @PostMapping
+  @Transactional
+  public ResponseEntity<?> create(@RequestBody CalendarEventCreateRequest req){
+    var owner = securityUtil.getCurrentUser();
+
+    // Validation: le type chantier n'est pas autorisé ici (les chantiers sont créés via les projets)
+    if (req.getEventType() == EventType.chantier) {
+      return ResponseEntity.badRequest().body(error("Les chantiers doivent être créés via les projets"));
+    }
+
+    CalendarEvent event = new CalendarEvent();
+    event.setOwner(owner);
+    event.setEventType(req.getEventType() != null ? req.getEventType() : EventType.rdv);
+    event.setTitle(req.getTitle());
+    event.setDescription(req.getDescription());
+    event.setLocation(req.getLocation());
+    event.setDuration(req.getDuration() != null ? req.getDuration() : 60);
+    event.setNotes(req.getNotes());
+    event.setStatus(req.getStatus() != null ? req.getStatus() : EventStatus.proposed);
+
+    // Client optionnel
+    if (req.getClientId() != null && !req.getClientId().isEmpty()) {
+      Client client = clientRepository.findById(UUID.fromString(req.getClientId())).orElse(null);
+      if (client != null && client.getOwner().getId().equals(owner.getId())) {
+        event.setClient(client);
+      }
+    }
+
+    // Date et heure optionnelles
+    if (req.getDate() != null && req.getStartTime() != null) {
+      event.setDateTime(req.getDate().atTime(
+          Integer.parseInt(req.getStartTime().split(":")[0]),
+          Integer.parseInt(req.getStartTime().split(":")[1])));
+      event.setStatus(EventStatus.confirmed);
+    } else {
+      event.setStatus(EventStatus.unscheduled);
+    }
+
+    eventRepository.save(event);
+    log.info("Created new event: {} for owner {}", event.getTitle(), owner.getId());
+    return ResponseEntity.ok(MappingUtil.toCalendarEventDTO(event));
   }
 
 

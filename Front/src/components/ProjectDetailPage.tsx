@@ -28,6 +28,7 @@ interface ProjectDetailPageProps {
   onBack: () => void;
   onEditChantier?: (chantier: ChantierDTO) => void;
   onDeleteChantier?: (chantierId: string) => void;
+  onNavigateToClient?: (clientId: string) => void;
 }
 
 export function ProjectDetailPage({
@@ -36,6 +37,7 @@ export function ProjectDetailPage({
   onBack,
   onEditChantier,
   onDeleteChantier,
+  onNavigateToClient,
 }: ProjectDetailPageProps) {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -177,7 +179,16 @@ export function ProjectDetailPage({
               <div className="text-sm text-gray-500 mb-1">Client</div>
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-900">{project.clientName}</span>
+                {onNavigateToClient && project.clientId ? (
+                  <button
+                    onClick={() => onNavigateToClient(project.clientId)}
+                    className="text-green-600 hover:text-green-700 hover:underline font-medium"
+                  >
+                    {project.clientName}
+                  </button>
+                ) : (
+                  <span className="text-gray-900">{project.clientName}</span>
+                )}
               </div>
             </div>
 

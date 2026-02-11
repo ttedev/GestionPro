@@ -22,6 +22,7 @@ import java.util.Set;
 @Slf4j
 public class SchedulingService {
 
+  private final static Integer PAUSE_MINIMUM_TIME_MINUTE = 15;
   private final CalendarEventRepository calendarEventRepository;
 
   public LocalDateTime calculateProposedDateTime(User user, YearMonth yearMonth,
@@ -100,7 +101,7 @@ public class SchedulingService {
       }
 
       if (eventEnd.isAfter(currentStart)) {
-        currentStart = eventEnd;
+        currentStart = eventEnd.plusMinutes(PAUSE_MINIMUM_TIME_MINUTE);
       }
     }
 

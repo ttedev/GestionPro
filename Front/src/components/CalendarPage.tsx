@@ -28,6 +28,7 @@ import {
 } from './ui/collapsible';
 import { toast } from 'sonner';
 import { calendarEventsAPI, EventStatus, EventType } from '../api/apiClient';
+import { AddEventDialog } from './AddEventDialog';
 
 ;
 
@@ -343,6 +344,7 @@ export function CalendarPage() {
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [unscheduledAppointments, setUnscheduledAppointments] = useState<Appointment[]>([ ]);
+  const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
 
   // Détecter si on est en mode mobile
   useEffect(() => {
@@ -863,17 +865,18 @@ export function CalendarPage() {
             <h1 className="text-gray-900 mb-2">Planning hebdomadaire</h1>
             <p className="text-gray-600 hidden sm:block">Glissez-déposez les interventions pour les déplacer ou programmer</p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvel événement
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              //TODO: Formulaire de création d'événement
-            </DialogContent>
-          </Dialog>
+          <Button
+            className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+            onClick={() => setIsAddEventDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nouvel événement
+          </Button>
+          <AddEventDialog
+            open={isAddEventDialogOpen}
+            onOpenChange={setIsAddEventDialogOpen}
+            onCreated={() => loadAppointments()}
+          />
         </div>
 
         {proposedCount > 0 && (

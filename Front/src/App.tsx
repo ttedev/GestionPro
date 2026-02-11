@@ -59,7 +59,8 @@ function MainLayout({ user, onLogout, onUpdateUser }: { user: User; onLogout: ()
             <Route path="/dashboard" element={<RestrictedRoute user={user}><DashboardWrapper /></RestrictedRoute>} />
             <Route path="/clients" element={<RestrictedRoute user={user}><ClientsWrapper /></RestrictedRoute>} />
             <Route path="/clients/:clientId" element={<RestrictedRoute user={user}><ClientDetailWrapper /></RestrictedRoute>} />
-            <Route path="/projects" element={<RestrictedRoute user={user}><ProjectsPage /></RestrictedRoute>} />
+            <Route path="/projects" element={<RestrictedRoute user={user}><ProjectsWrapper /></RestrictedRoute>} />
+            <Route path="/projects/:projectId" element={<RestrictedRoute user={user}><ProjectDetailWrapper /></RestrictedRoute>} />
             <Route path="/calendar" element={<RestrictedRoute user={user}><CalendarPage /></RestrictedRoute>} />
             <Route path="/profile" element={<UserProfilePage user={user} onUpdateUser={onUpdateUser} />} />
           </Routes>
@@ -98,7 +99,30 @@ function ClientDetailWrapper() {
   return (
     <ClientDetailPage 
       clientId={clientId!} 
-      onBack={() => navigate('/clients')} 
+      onBack={() => navigate('/clients')}
+      onNavigateToProject={(projectId) => navigate(`/projects/${projectId}`)}
+    />
+  );
+}
+
+function ProjectsWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <ProjectsPage
+      onNavigateToClient={(clientId) => navigate(`/clients/${clientId}`)}
+    />
+  );
+}
+
+function ProjectDetailWrapper() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <ProjectsPage
+      projectId={projectId}
+      onNavigateToClient={(clientId) => navigate(`/clients/${clientId}`)}
     />
   );
 }

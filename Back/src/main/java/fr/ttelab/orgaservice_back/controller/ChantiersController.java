@@ -40,6 +40,33 @@ public class ChantiersController {
         return chantierRepository.findById(id).map(MappingUtil::toChantierDTO).orElse(null);
     }
 
+    @PutMapping("/{id}")
+    public ChantierDTO update(@PathVariable UUID id, @RequestBody ChantierDTO dto) {
+        var owner = securityUtil.getCurrentUser();
+        return chantierRepository.findById(id)
+            .filter(chantier -> chantier.getOwner().getId().equals(owner.getId()))
+            .map(chantier -> {
+                if (dto.getMonthTarget() != null) {
+                    chantier.setMonthTarget(dto.getMonthTarget());
+                }
+                if (dto.getDurationMinutes() != null) {
+                    chantier.setDureeEnMinutes(dto.getDurationMinutes());
+                }
+                return MappingUtil.toChantierDTO(chantierRepository.save(chantier));
+            })
+            .orElse(null);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable UUID id) {
+        var owner = securityUtil.getCurrentUser();
+        chantierRepository.findById(id).ifPresent(chantier -> {
+            if (chantier.getOwner().getId().equals(owner.getId())) {
+                chantierRepository.delete(chantier);
+            }
+        });
+    }
+
 
 }
 

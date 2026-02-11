@@ -474,6 +474,29 @@ export const chantiersAPI = {
     const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, { headers: getHeaders() });
     return handleResponse<ChantierDTO>(response);
   },
+  /**
+   * Mettre à jour un chantier
+   */
+  update: async (id: string, data: { monthTarget?: string; durationMinutes?: number }): Promise<ChantierDTO> => {
+    const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<ChantierDTO>(response);
+  },
+  /**
+   * Supprimer un chantier par ID
+   */
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/chantiers/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error('Erreur lors de la suppression du chantier');
+    }
+  },
 };
 
 

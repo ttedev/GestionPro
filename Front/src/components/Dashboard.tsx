@@ -22,6 +22,7 @@ import {
 } from './ui/select';
 import { ProjectForm } from './ProjectForm';
 import { AddClientDialog } from './AddClientDialog';
+import { AddEventDialog } from './AddEventDialog';
 import { dashboardAPI, clientsAPI, type DashboardStats, type Client, remarksAPI } from '../api/apiClient';
 
 interface DashboardProps {
@@ -30,7 +31,6 @@ interface DashboardProps {
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   const [selectedClient, setSelectedClient] = useState('');
-  const [duration, setDuration] = useState('60');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
@@ -45,6 +45,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [isRemarkDialogOpen, setIsRemarkDialogOpen] = useState(false);
   // Dialog open state for project/intervention creation
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
+  // Dialog open state for event/rdv creation
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setAppointmentsLoading(true);
@@ -173,76 +175,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </DialogContent>
   </Dialog>
   {/* Add Appointment */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="h-auto py-6 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700">
-              <CalendarPlus className="w-6 h-6" />
-              <span>Ajouter un RDV</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajouter un rendez-vous</DialogTitle>
-              <DialogDescription>
-                Planifier un nouveau rendez-vous
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="rdv-client">Client</Label>
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientsLoading && <div className="px-2 py-1 text-sm text-gray-500">Chargement...</div>}
-                    {clientsError && <div className="px-2 py-1 text-sm text-red-600">{clientsError}</div>}
-                    {!clientsLoading && !clientsError && clients.map((client) => (
-                      <SelectItem key={client.id} value={String(client.id)}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="rdv-location">Lieu</Label>
-                <Input id="rdv-location" placeholder="Adresse du rendez-vous" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="rdv-date">Date</Label>
-                  <Input id="rdv-date" type="date" />
-                </div>
-                <div>
-                  <Label htmlFor="rdv-time">Heure</Label>
-                  <Input id="rdv-time" type="time" />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="rdv-duration">Durée (minutes)</Label>
-                <Select value={duration} onValueChange={setDuration}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="45">45 minutes</SelectItem>
-                    <SelectItem value="60">1 heure</SelectItem>
-                    <SelectItem value="90">1h30</SelectItem>
-                    <SelectItem value="120">2 heures</SelectItem>
-                    <SelectItem value="180">3 heures</SelectItem>
-                    <SelectItem value="240">4 heures</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                Ajouter le rendez-vous
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button
+          className="h-auto py-6 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700"
+          onClick={() => setIsEventDialogOpen(true)}
+        >
+          <CalendarPlus className="w-6 h-6" />
+          <span>Ajouter un RDV</span>
+        </Button>
+        <AddEventDialog
+          open={isEventDialogOpen}
+          onOpenChange={setIsEventDialogOpen}
+          onCreated={() => loadStats()}
+        />
         {/* Add Remark */}
         <Dialog open={isRemarkDialogOpen} onOpenChange={setIsRemarkDialogOpen}>
           <DialogTrigger asChild>

@@ -89,8 +89,10 @@ public class MappingUtil {
     CalendarEventDTO dto = new CalendarEventDTO();
     dto.setId(String.valueOf(e.getId()));
     dto.setEventType(e.getEventType());
-    dto.setClientId(String.valueOf(e.getClient().getId()));
-    dto.setClientName(e.getClient().getName());
+    if (e.getClient() != null) {
+      dto.setClientId(String.valueOf(e.getClient().getId()));
+      dto.setClientName(e.getClient().getName());
+    }
     if (e.getProject() != null) dto.setInterventionId(String.valueOf(e.getProject().getId()));
     if (e.getChantier() != null) dto.setChantierId(String.valueOf(e.getChantier().getId()));
     dto.setDayIndex(e.getDayIndex());

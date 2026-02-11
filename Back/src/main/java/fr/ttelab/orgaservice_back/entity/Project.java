@@ -47,8 +47,11 @@ public class Project {
   @Column(nullable = false)
   private Integer dureeEnMinutes; // durée en minutes
 
-  @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
   private java.util.List<Chantier> chantiers = new java.util.ArrayList<>();
+
+  @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+  private java.util.List<CalendarEvent> calendarEvents = new java.util.ArrayList<>();
 
   @ElementCollection
   @CollectionTable(name = "plan_travaux", joinColumns = @JoinColumn(name = "project_id"))
