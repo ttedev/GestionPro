@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { User, Mail, Building2, Save, X, Clock, Lock, Eye, EyeOff, CreditCard } from 'lucide-react';
+import { User, Mail, Building2, Save, X, Clock, Lock, Eye, EyeOff, CreditCard, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { User as MyUser, authAPI } from '../api/apiClient';
+import { User as MyUser, authAPI, supportAPI } from '../api/apiClient';
+import { SupportChatDialog } from './SupportChatDialog';
 
 interface UserProfilePageProps {
   user: MyUser;
@@ -34,6 +35,22 @@ export function UserProfilePage({ user, onUpdateUser, onNavigateToSubscription }
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+  const [isSupportChatOpen, setIsSupportChatOpen] = useState(false);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+
+  // Charger le nombre de messages non lus
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const { unreadCount } = await supportAPI.getUnreadCount();
+      setUnreadSupportCount(unreadCount);
+    } catch (e) {
+      console.error('Erreur chargement messages non lus', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUnreadCount();
+  }, [loadUnreadCount]);
 
   // Ouvrir le portail client Stripe pour gérer l'abonnement
   const handleOpenCustomerPortal = async () => {
@@ -160,11 +177,33 @@ export function UserProfilePage({ user, onUpdateUser, onNavigateToSubscription }
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-
-        <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-        <p className="text-gray-500 mt-1">Gérez vos informations personnelles</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
+          <p className="text-gray-500 mt-1">Gérez vos informations personnelles</p>
+        </div>
+        {/* Bouton Contact Support */}
+        <Button
+          onClick={() => setIsSupportChatOpen(true)}
+          variant="outline"
+          className="relative gap-2"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Contacter le support
+          {unreadSupportCount > 0 && (
+            <span className="-top-2 -right-2 min-w-5 h-5 px-2 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+              {unreadSupportCount}
+            </span>
+          )}
+        </Button>
       </div>
+
+      {/* Support Chat Dialog */}
+      <SupportChatDialog
+        open={isSupportChatOpen}
+        onOpenChange={setIsSupportChatOpen}
+        onUnreadCountChange={setUnreadSupportCount}
+      />
 
       {/* Warning for inactive users */}
       {user.status !== 'ACTIVE' && (

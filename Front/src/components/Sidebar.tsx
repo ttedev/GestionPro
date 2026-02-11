@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Briefcase, Calendar, Sprout, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, Sprout, LogOut, User, Shield } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle } from './ui/sheet';
@@ -22,14 +22,18 @@ export function Sidebar({ user, onLogout, isMobileOpen, onMobileClose }: Sidebar
     { id: 'calendar', label: 'Planning', icon: Calendar, path: '/calendar' },
   ];
 
+  // Ajouter le menu Admin pour les utilisateurs admin
+  const adminMenuItem = { id: 'admin', label: 'Administration', icon: Shield, path: '/admin' };
+
   const handleLogout = () => {
     onLogout?.();
     onMobileClose?.();
     navigate('/login');
   };
 
-  // Only show menu items if user is ACTIVE
-  const isUserActive = user?.status === 'ACTIVE';
+  // Only show menu items if user is ACTIVE or ADMIN
+  const isUserActive = user?.status === 'ACTIVE' || user?.status === 'ADMIN';
+  const isAdmin = user?.status === 'ADMIN';
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -64,7 +68,25 @@ export function Sidebar({ user, onLogout, isMobileOpen, onMobileClose }: Sidebar
             </NavLink>
           );
         })}
-        
+
+        {/* Menu Admin pour les utilisateurs admin */}
+        {isAdmin && (
+          <NavLink
+            to={adminMenuItem.path}
+            onClick={() => onMobileClose?.()}
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-purple-50 text-purple-700'
+                  : 'text-purple-600 hover:bg-purple-50'
+              }`
+            }
+          >
+            <Shield className="w-5 h-5" />
+            <span>{adminMenuItem.label}</span>
+          </NavLink>
+        )}
+
         {!isUserActive && (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800 font-medium mb-1">Compte en attente</p>

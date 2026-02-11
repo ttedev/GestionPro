@@ -1,10 +1,12 @@
 package fr.ttelab.orgaservice_back.security;
 
 import fr.ttelab.orgaservice_back.entity.User;
+import fr.ttelab.orgaservice_back.entity.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -25,8 +27,16 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Pour l'instant, tous les utilisateurs ont le rôle USER.
-        return List.of(new SimpleGrantedAuthority("ROLE_"+user.getStatus().name()));
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        // Ajouter le rôle correspondant au statut
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getStatus().name()));
+
+        // Les admins ont aussi le rôle ACTIVE pour accéder à toutes les fonctionnalités
+        if (user.getStatus() == UserStatus.ADMIN) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ACTIVE"));
+        }
+
+        return authorities;
     }
 
     @Override

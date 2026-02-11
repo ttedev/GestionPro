@@ -7,6 +7,7 @@ import { CalendarPage } from './components/CalendarPage';
 import { ClientDetailPage } from './components/ClientDetailPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { SubscriptionPage } from './components/SubscriptionPage';
+import { AdminPage } from './components/AdminPage';
 import { Sidebar } from './components/Sidebar';
 import { LoginPage } from './components/LoginPage';
 import { MobileHeader } from './components/MobileHeader';
@@ -24,9 +25,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Restricted Route Component - Only for ACTIVE users
+// Restricted Route Component - Only for ACTIVE or ADMIN users
 function RestrictedRoute({ children, user }: { children: React.ReactNode; user: User }) {
-  if (user.status !== 'ACTIVE') {
+  if (user.status !== 'ACTIVE' && user.status !== 'ADMIN') {
     return <Navigate to="/profile" replace />;
   }
   return <>{children}</>;
@@ -56,7 +57,7 @@ function MainLayout({ user, onLogout, onUpdateUser }: { user: User; onLogout: ()
         <main className="flex-1 p-4 lg:p-8">
           {/* Children routes will render here */}
           <Routes>
-            <Route path="/" element={<Navigate to={user.status === 'ACTIVE' ? "/dashboard" : "/profile"} replace />} />
+            <Route path="/" element={<Navigate to={user.status === 'ACTIVE' || user.status === 'ADMIN' ? "/dashboard" : "/profile"} replace />} />
             <Route path="/dashboard" element={<RestrictedRoute user={user}><DashboardWrapper /></RestrictedRoute>} />
             <Route path="/clients" element={<RestrictedRoute user={user}><ClientsWrapper /></RestrictedRoute>} />
             <Route path="/clients/:clientId" element={<RestrictedRoute user={user}><ClientDetailWrapper /></RestrictedRoute>} />
@@ -65,6 +66,7 @@ function MainLayout({ user, onLogout, onUpdateUser }: { user: User; onLogout: ()
             <Route path="/calendar" element={<RestrictedRoute user={user}><CalendarPage /></RestrictedRoute>} />
             <Route path="/profile" element={<UserProfileWrapper user={user} onUpdateUser={onUpdateUser} />} />
             <Route path="/subscription" element={<SubscriptionWrapper />} />
+            <Route path="/admin" element={user.status === 'ADMIN' ? <AdminPage /> : <Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
       </div>

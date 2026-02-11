@@ -16,7 +16,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 export type EventStatus = 'unscheduled' | 'proposed' | 'confirmed' | 'completed' | 'cancelled';
 export type EventType = 'chantier' | 'rdv' | 'prospection' | 'autre'
-export type UserStatus =  'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+export type UserStatus =  'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ADMIN';
 // Types
 export interface User {
   id: string;
@@ -827,6 +827,225 @@ export const dashboardAPI = {
   },
 };
 
+// =============================================================================
+// ADMIN API
+// =============================================================================
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  company: string;
+  status: UserStatus;
+  endLicenseDate: string | null;
+  createdAt: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  hasActiveSubscription: boolean;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  pendingUsers: number;
+  inactiveUsers: number;
+  suspendedUsers: number;
+  adminUsers: number;
+  usersWithSubscription: number;
+  expiringThisMonth: number;
+}
+
+export interface UpdateUserRequest {
+  status?: UserStatus;
+  endLicenseDate?: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+}
+
+export const adminAPI = {
+  /**
+   * Liste tous les utilisateurs (admin uniquement)
+   */
+  getUsers: async (): Promise<AdminUser[]> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<AdminUser[]>(response);
+  },
+
+  /**
+   * Récupère un utilisateur par ID
+   */
+  getUser: async (id: string): Promise<AdminUser> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<AdminUser>(response);
+  },
+
+  /**
+   * Met à jour un utilisateur
+   */
+  updateUser: async (id: string, data: UpdateUserRequest): Promise<AdminUser> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse<AdminUser>(response);
+  },
+
+  /**
+   * Active un utilisateur avec une licence d'un an par défaut
+   */
+  activateUser: async (id: string, endLicenseDate?: string): Promise<AdminUser> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}/activate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ endLicenseDate }),
+    });
+    return handleResponse<AdminUser>(response);
+  },
+
+  /**
+   * Désactive un utilisateur
+   */
+  deactivateUser: async (id: string): Promise<AdminUser> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}/deactivate`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse<AdminUser>(response);
+  },
+
+  /**
+   * Supprime un utilisateur
+   */
+  deleteUser: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse<void>(response);
+  },
+
+  /**
+   * Récupère les statistiques admin
+   */
+  getStats: async (): Promise<AdminStats> => {
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<AdminStats>(response);
+  },
+
+  /**
+   * Récupère les IDs des utilisateurs avec des messages non lus
+   */
+  getUsersWithUnreadMessages: async (): Promise<{ userIds: string[] }> => {
+    const response = await fetch(`${API_BASE_URL}/support/admin/users-with-unread`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ userIds: string[] }>(response);
+  },
+
+  /**
+   * Récupère les messages d'un utilisateur (admin)
+   */
+  getUserMessages: async (userId: string): Promise<SupportMessage[]> => {
+    const response = await fetch(`${API_BASE_URL}/support/admin/messages/${userId}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<SupportMessage[]>(response);
+  },
+
+  /**
+   * Envoie un message à un utilisateur (admin)
+   */
+  sendMessageToUser: async (userId: string, content: string): Promise<SupportMessage> => {
+    const response = await fetch(`${API_BASE_URL}/support/admin/messages/${userId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ content }),
+    });
+    return handleResponse<SupportMessage>(response);
+  },
+
+  /**
+   * Marque les messages d'un utilisateur comme lus (admin)
+   */
+  markUserMessagesAsRead: async (userId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/support/admin/messages/${userId}/mark-read`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse<void>(response);
+  },
+};
+
+// =============================================================================
+// SUPPORT API (pour les utilisateurs)
+// =============================================================================
+
+export interface SupportMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  fromAdmin: boolean;
+  readByUser: boolean;
+  readByAdmin: boolean;
+  createdAt: string;
+}
+
+export const supportAPI = {
+  /**
+   * Récupère tous les messages de la conversation
+   */
+  getMessages: async (): Promise<SupportMessage[]> => {
+    const response = await fetch(`${API_BASE_URL}/support/messages`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<SupportMessage[]>(response);
+  },
+
+  /**
+   * Envoie un message au support
+   */
+  sendMessage: async (content: string): Promise<SupportMessage> => {
+    const response = await fetch(`${API_BASE_URL}/support/messages`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ content }),
+    });
+    return handleResponse<SupportMessage>(response);
+  },
+
+  /**
+   * Marque les messages de l'admin comme lus
+   */
+  markAsRead: async (): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/support/messages/mark-read`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse<void>(response);
+  },
+
+  /**
+   * Récupère le nombre de messages non lus
+   */
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    const response = await fetch(`${API_BASE_URL}/support/unread-count`, {
+      headers: getHeaders(),
+    });
+    return handleResponse<{ unreadCount: number }>(response);
+  },
+};
+
 // Export par défaut
 export default {
   auth: authAPI,
@@ -836,4 +1055,6 @@ export default {
   appointments: appointmentsAPI,
   remarks: remarksAPI,
   dashboard: dashboardAPI,
+  admin: adminAPI,
+  support: supportAPI,
 };

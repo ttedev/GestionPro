@@ -3301,3 +3301,10 @@ html {
 .right-3{
   right: 0.75rem;
 }
+
+.justify-end{
+  justify-content: end;
+}
+.justify-start{
+  justify-content: start;
+}
