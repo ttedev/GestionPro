@@ -6,6 +6,7 @@ import { ProjectsPage } from './components/ProjectsPage';
 import { CalendarPage } from './components/CalendarPage';
 import { ClientDetailPage } from './components/ClientDetailPage';
 import { UserProfilePage } from './components/UserProfilePage';
+import { SubscriptionPage } from './components/SubscriptionPage';
 import { Sidebar } from './components/Sidebar';
 import { LoginPage } from './components/LoginPage';
 import { MobileHeader } from './components/MobileHeader';
@@ -62,7 +63,8 @@ function MainLayout({ user, onLogout, onUpdateUser }: { user: User; onLogout: ()
             <Route path="/projects" element={<RestrictedRoute user={user}><ProjectsWrapper /></RestrictedRoute>} />
             <Route path="/projects/:projectId" element={<RestrictedRoute user={user}><ProjectDetailWrapper /></RestrictedRoute>} />
             <Route path="/calendar" element={<RestrictedRoute user={user}><CalendarPage /></RestrictedRoute>} />
-            <Route path="/profile" element={<UserProfilePage user={user} onUpdateUser={onUpdateUser} />} />
+            <Route path="/profile" element={<UserProfileWrapper user={user} onUpdateUser={onUpdateUser} />} />
+            <Route path="/subscription" element={<SubscriptionWrapper />} />
           </Routes>
         </main>
       </div>
@@ -123,6 +125,28 @@ function ProjectDetailWrapper() {
     <ProjectsPage
       projectId={projectId}
       onNavigateToClient={(clientId) => navigate(`/clients/${clientId}`)}
+    />
+  );
+}
+
+function UserProfileWrapper({ user, onUpdateUser }: { user: User; onUpdateUser: (user: User) => void }) {
+  const navigate = useNavigate();
+
+  return (
+    <UserProfilePage
+      user={user}
+      onUpdateUser={onUpdateUser}
+      onNavigateToSubscription={() => navigate('/subscription')}
+    />
+  );
+}
+
+function SubscriptionWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <SubscriptionPage
+      onBack={() => navigate('/profile')}
     />
   );
 }

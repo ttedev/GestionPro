@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
     UserStatus status = UserStatus.ACTIVE ;
     user.setStatus(status);
     user.setWorkEndTime(LocalTime.of(15,00));
-    user.setEndLicenseDate(LocalDateTime.now().plusDays(1).toLocalDate());
+    user.setEndLicenseDate(LocalDateTime.now().plusDays(-1).toLocalDate());
     userRepository.save(user);
 
     Client client1 = new Client();

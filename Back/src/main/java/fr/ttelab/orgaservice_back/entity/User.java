@@ -55,6 +55,10 @@ public class User {
 
   private LocalDate endLicenseDate;
 
+  // Stripe integration
+  private String stripeCustomerId;
+  private String stripeSubscriptionId;
+
   @Enumerated(EnumType.STRING)
     @Column(nullable = false)
   private  UserStatus status = UserStatus.PENDING;

@@ -27,6 +27,7 @@ export interface User {
   workEndTime: string;
   status: UserStatus;
   endLicenseDate: string;
+  hasActiveSubscription: boolean; // true si abonnement mensuel gérable via portail Stripe
 }
 
 export interface Address {
@@ -294,6 +295,18 @@ export const authAPI = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ priceId }),
+    });
+
+    return handleResponse<{ url: string }>(response);
+  },
+
+  /**
+   * Ouvrir le portail client Stripe pour gérer l'abonnement (factures, carte, résiliation)
+   */
+  openCustomerPortal: async (): Promise<{ url: string }> => {
+    const response = await fetch(`${API_BASE_URL}/billing/customer-portal`, {
+      method: 'POST',
+      headers: getHeaders(),
     });
 
     return handleResponse<{ url: string }>(response);

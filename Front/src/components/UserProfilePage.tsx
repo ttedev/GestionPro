@@ -10,9 +10,10 @@ import { User as MyUser, authAPI } from '../api/apiClient';
 interface UserProfilePageProps {
   user: MyUser;
   onUpdateUser: (user: MyUser) => void;
+  onNavigateToSubscription?: () => void;
 }
 
-export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
+export function UserProfilePage({ user, onUpdateUser, onNavigateToSubscription }: UserProfilePageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name,
@@ -32,7 +33,20 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+
+  // Ouvrir le portail client Stripe pour gérer l'abonnement
+  const handleOpenCustomerPortal = async () => {
+    setIsOpeningPortal(true);
+    try {
+      const { url } = await authAPI.openCustomerPortal();
+      window.location.href = url;
+    } catch (error) {
+      console.error('Erreur lors de l\'ouverture du portail client:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'ouverture du portail');
+      setIsOpeningPortal(false);
+    }
+  };
 
   // Rafraîchir les données utilisateur à l'arrivée sur la page
   // Important après un paiement Stripe pour mettre à jour le statut
@@ -143,21 +157,6 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
     setIsEditing(false);
   };
 
-  const handleSubscribe = async () => {
-    // TODO:pas pris en compte pour l'instant 
-    const priceId = 'price_XXXXXXXXX'; 
-    
-    setIsSubscribing(true);
-    try {
-      const { url } = await authAPI.subscribe(priceId);
-      window.location.href = url; // Redirection vers Stripe Checkout
-    } catch (error) {
-      console.error('Erreur lors de la souscription:', error);
-      toast.error(error instanceof Error ? error.message : 'Erreur lors de la souscription');
-      setIsSubscribing(false);
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -182,13 +181,53 @@ export function UserProfilePage({ user, onUpdateUser }: UserProfilePageProps) {
                   Souscrivez à un abonnement pour activer votre compte et accéder à toutes les fonctionnalités.
                 </p>
                 <Button 
-                  onClick={handleSubscribe}
-                  disabled={isSubscribing}
+                  onClick={onNavigateToSubscription}
                   className="gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
                 >
                   <CreditCard className="w-4 h-4" />
-                  {isSubscribing ? 'Redirection...' : 'Souscrire à un abonnement'}
+                  Souscrire à un abonnement
                 </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Subscription info for active users */}
+      {user.status === 'ACTIVE' && (
+        <Card className="mb-6 border-green-300 bg-green-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <CreditCard className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 mb-1">
+                  {user.hasActiveSubscription ? 'Abonnement mensuel actif' : 'Licence annuelle active'}
+                </h3>
+                <p className="text-sm text-green-800 mb-1">
+                  Votre compte est actif jusqu'au {user.endLicenseDate ? new Date(user.endLicenseDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}.
+                </p>
+                {user.hasActiveSubscription ? (
+                  <>
+                    <p className="text-xs text-green-700 mb-3">
+                      Gérez votre abonnement, consultez vos factures ou mettez à jour votre moyen de paiement.
+                    </p>
+                    <Button
+                      onClick={handleOpenCustomerPortal}
+                      disabled={isOpeningPortal}
+                      variant="outline"
+                      className="gap-2 border-green-600 text-green-700 hover:bg-green-100"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      {isOpeningPortal ? 'Redirection...' : 'Gérer mon abonnement'}
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-xs text-green-700">
+                    Vous avez payé pour une année complète. Votre licence sera renouvelable à la fin de cette période.
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

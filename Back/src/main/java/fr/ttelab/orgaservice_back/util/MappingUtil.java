@@ -158,7 +158,9 @@ public class MappingUtil {
       userDTO.setWorkStartTime(user.getWorkStartTime().toString());
       userDTO.setWorkEndTime(user.getWorkEndTime().toString());
       userDTO.setStatus(user.getStatus());
-      if (user.getEndLicenseDate()!=null)userDTO.setEndLicenseDate(user.getEndLicenseDate().toString());
+      if (user.getEndLicenseDate()!=null) userDTO.setEndLicenseDate(user.getEndLicenseDate().toString());
+      // hasActiveSubscription est true si l'utilisateur a un abonnement mensuel (stripeSubscriptionId présent)
+      userDTO.setHasActiveSubscription(user.getStripeSubscriptionId() != null && !user.getStripeSubscriptionId().isEmpty());
       return userDTO;
     }
 }

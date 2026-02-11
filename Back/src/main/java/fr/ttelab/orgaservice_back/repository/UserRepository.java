@@ -18,4 +18,9 @@ public interface UserRepository  extends JpaRepository<User, UUID> {
 
   boolean existsByEmail(String email);
 
+  // Stripe integration
+  Optional<User> findByStripeCustomerId(String stripeCustomerId);
+
+  Optional<User> findByStripeSubscriptionId(String stripeSubscriptionId);
+
 }

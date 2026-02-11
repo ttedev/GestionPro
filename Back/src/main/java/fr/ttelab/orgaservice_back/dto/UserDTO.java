@@ -15,4 +15,5 @@ public class UserDTO {
   private String workEndTime;
   private UserStatus status;
   private String endLicenseDate;
+  private boolean hasActiveSubscription; // true si l'utilisateur a un abonnement mensuel gérable via Stripe
 }
