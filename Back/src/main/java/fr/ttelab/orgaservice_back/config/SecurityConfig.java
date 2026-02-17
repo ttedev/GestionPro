@@ -74,7 +74,7 @@ public class SecurityConfig {
             auth -> auth
                 .requestMatchers("/", "/login", "/h2-console/**","/login/oauth2/code/**","/api/oauth2/authorization/google").permitAll()
                 .requestMatchers("/index.html","/assets/**").permitAll()
-0               .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
                 .requestMatchers("/dashboard","/clients","/clients/*","/projects","/calendar","/profile").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
