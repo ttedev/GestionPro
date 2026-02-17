@@ -1,10 +1,13 @@
 package fr.ttelab.orgaservice_back.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -54,10 +57,50 @@ public class JwtRequestFilter extends OncePerRequestFilter {
               SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             }
           }
-        }catch (Exception e){
-          log.info("Fail jwt",e);
+        } catch (ExpiredJwtException e) {
+          log.warn("JWT token expiré: {}", e.getMessage());
+          sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "TOKEN_EXPIRED", "Le token JWT a expiré");
+          return;
+        } catch (JwtException e) {
+          log.warn("JWT token invalide: {}", e.getMessage());
+          sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "TOKEN_INVALID", "Le token JWT est invalide");
+          return;
+        } catch (Exception e) {
+          log.error("Erreur lors de la validation du token JWT", e);
+          sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "TOKEN_ERROR", "Erreur lors de la validation du token");
+          return;
         }
     filterChain.doFilter(request, response);
 
+  }
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String path = request.getRequestURI();
+    // Ne pas filtrer les routes publiques (login, logout, assets, etc.)
+    // Note: /api/auth/me, /api/auth/update-password, /api/auth/update-profile nécessitent un token
+    return path.equals("/api/auth/login") ||
+           path.equals("/api/auth/logout") ||
+           path.equals("/login") ||
+           path.startsWith("/assets/") ||
+           path.equals("/index.html") ||
+           path.equals("/") ||
+           path.startsWith("/api/oauth2/") ||
+           path.startsWith("/login/oauth2/");
+  }
+
+  private void sendErrorResponse(HttpServletResponse response, int status, String errorCode, String message) throws IOException {
+    // Ajouter les headers CORS pour que le frontend puisse lire la réponse
+    response.setHeader("Access-Control-Allow-Origin", "*");
+    response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    response.setHeader("Access-Control-Expose-Headers", "Authorization");
+
+    response.setStatus(status);
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    response.setCharacterEncoding("UTF-8");
+    String jsonResponse = String.format("{\"error\": \"%s\", \"message\": \"%s\", \"status\": %d}", errorCode, message, status);
+    response.getWriter().write(jsonResponse);
+    response.getWriter().flush();
   }
 }

@@ -213,18 +213,52 @@ function LoginWrapper({ onLogin }: { onLogin: (user: User) => void }) {
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingOAuth, setIsLoadingOAuth] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Check if user is already logged in (from localStorage)
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    const savedToken = localStorage.getItem('authToken');
+
+    if (savedUser && savedToken) {
       try {
         setCurrentUser(JSON.parse(savedUser));
       } catch (error) {
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
       }
+    } else {
+      // Nettoyer si l'un des deux manque
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
     }
+    setIsInitializing(false);
   }, []);
+
+  // Écouter les changements du localStorage pour détecter la déconnexion forcée (token expiré)
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'currentUser' && event.newValue === null) {
+        setCurrentUser(null);
+      }
+    };
+
+    // Vérifier périodiquement si le localStorage a été vidé (pour le même onglet)
+    const checkLogout = () => {
+      const savedUser = localStorage.getItem('currentUser');
+      if (!savedUser && currentUser) {
+        setCurrentUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    const interval = setInterval(checkLogout, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [currentUser]);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -242,14 +276,26 @@ export default function App() {
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
   };
 
+  // Afficher un écran de chargement pendant l'initialisation
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Router>
       <Routes>
         <Route 
           path="/login" 
           element={
-            currentUser ? (
-              <Navigate to={currentUser.status === 'ACTIVE' ? "/dashboard" : "/profile"} replace />
+            currentUser && localStorage.getItem('currentUser') ? (
+              <Navigate to={currentUser.status === 'ACTIVE' || currentUser.status === 'ADMIN' ? "/dashboard" : "/profile"} replace />
             ) : (
               <LoginWrapper onLogin={handleLogin} />
             )

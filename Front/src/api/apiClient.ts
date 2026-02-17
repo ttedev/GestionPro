@@ -196,6 +196,30 @@ function getHeaders(): HeadersInit {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Une erreur est survenue' }));
+
+    // Gérer les erreurs de token JWT
+    if (response.status === 401) {
+      const errorCode = error.error;
+
+      if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'TOKEN_INVALID' || errorCode === 'TOKEN_ERROR' || errorCode === 'TOKEN_MISSING') {
+        console.warn(`Erreur JWT: ${errorCode} - ${error.message}`);
+
+        // Supprimer le token et l'utilisateur du localStorage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+
+        // Rediriger vers la page de login (sauf si on est déjà sur /login)
+        if (window.location.pathname !== '/login') {
+          // Petit délai pour s'assurer que le localStorage est bien vidé
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 50);
+        }
+
+        throw new Error(error.message || 'Session expirée, veuillez vous reconnecter');
+      }
+    }
+
     throw new Error(error.error || error.details || `HTTP ${response.status}`);
   }
   

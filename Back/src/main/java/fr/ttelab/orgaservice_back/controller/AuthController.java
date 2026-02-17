@@ -83,41 +83,43 @@ public class AuthController {
     @GetMapping("/me")
   public ResponseEntity<UserDTO> currentUser(){
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-      if (authentication != null && authentication.isAuthenticated()){
+      if (authentication != null && authentication.isAuthenticated()
+          && !"anonymousUser".equals(authentication.getPrincipal())){
         String name = authentication.getName();
-        User user = userRepository.findByEmail(name).orElseGet(null);
-        if (user.getStatus().equals(UserStatus.ACTIVE) && user.getEndLicenseDate().isBefore(java.time.LocalDate.now())) {
-          user.setStatus(UserStatus.INACTIVE);
-          userRepository.save(user);
-        }
-
-        if (user!=null) {
+        User user = userRepository.findByEmail(name).orElse(null);
+        if (user != null) {
+          if (user.getStatus().equals(UserStatus.ACTIVE) && user.getEndLicenseDate().isBefore(java.time.LocalDate.now())) {
+            user.setStatus(UserStatus.INACTIVE);
+            userRepository.save(user);
+          }
           return ResponseEntity.ok(MappingUtil.toUserDTO(user));
         }
       }
-    return ResponseEntity.notFound().build();
+    return ResponseEntity.status(401).build();
     }
 
     @PostMapping("/update-password")
     public ResponseEntity<?> updatePassword(@RequestBody Map<String, String> req) {
       String newPassword = req.get("newPassword");
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-      if (authentication != null && authentication.isAuthenticated()) {
+      if (authentication != null && authentication.isAuthenticated()
+          && !"anonymousUser".equals(authentication.getPrincipal())) {
         String name = authentication.getName();
-        User user = userRepository.findByEmail(name).orElseGet(null);
+        User user = userRepository.findByEmail(name).orElse(null);
         if (user != null) {
           user.setPassword(passwordEncoder.encode(newPassword));
           userRepository.save(user);
           return ResponseEntity.ok(Map.of("message", "Mot de passe mis à jour avec succès"));
         }
       }
-      return ResponseEntity.status(403).body("Unauthorized");
+      return ResponseEntity.status(401).body("Unauthorized");
     }
 
     @PostMapping("/update-profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> req) {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-      if (authentication != null && authentication.isAuthenticated()) {
+      if (authentication != null && authentication.isAuthenticated()
+          && !"anonymousUser".equals(authentication.getPrincipal())) {
         String userId = authentication.getName();
         String name = req.get("name");
         String email = req.get("email");
@@ -125,7 +127,7 @@ public class AuthController {
         String workStartTime = req.get("workStartTime");
         String workEndTime = req.get("workEndTime");
 
-        User user = userRepository.findByEmail(userId).orElseGet(null);
+        User user = userRepository.findByEmail(userId).orElse(null);
         if (user != null) {
           if (name != null) user.setFirstName(name);
           if (email != null) user.setEmail(email);
@@ -136,6 +138,6 @@ public class AuthController {
           return ResponseEntity.ok(MappingUtil.toUserDTO(user));
         }
       }
-        return ResponseEntity.status(403).body("Unauthorized");
+        return ResponseEntity.status(401).body("Unauthorized");
     }
   }
