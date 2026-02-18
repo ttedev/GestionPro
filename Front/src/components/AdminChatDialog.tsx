@@ -109,7 +109,7 @@ export function AdminChatDialog({ open, onOpenChange, user, onMessagesRead }: Ad
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 !w-full !h-full !max-w-full !max-h-full !rounded-none sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[500px] sm:!h-[600px] sm:!max-w-[500px] sm:!max-h-[90vh] sm:!rounded-lg flex flex-col p-4 pt-12 sm:p-6">
+      <DialogContent className="inset-0 w-full h-full max-w-full max-h-full rounded-none p-4 pt-12 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-[600px] sm:max-w-[500px] sm:max-h-[90vh] sm:rounded-lg sm:p-6 flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">

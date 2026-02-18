@@ -264,7 +264,7 @@ export function UserProfilePage({ user, onUpdateUser, onNavigateToSubscription }
                   </>
                 ) : (
                   <p className="text-xs text-green-700">
-                    Vous avez payé pour une année complète. Votre licence sera renouvelable à la fin de cette période.
+                    Vous avez payé pour une année complète.
                   </p>
                 )}
               </div>
