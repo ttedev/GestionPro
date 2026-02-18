@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Plus, Key, Trash2 } from 'lucide-react';
+import { Plus, Key, Trash2, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,28 @@ import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { clientsAPI, type Address } from '../api/apiClient';
+
+// Type pour l'API Contact Picker
+interface ContactInfo {
+  name?: string[];
+  email?: string[];
+  tel?: string[];
+  address?: {
+    addressLine?: string[];
+    city?: string;
+    postalCode?: string;
+  }[];
+}
+
+declare global {
+  interface ContactsManager {
+    select(properties: string[], options?: { multiple?: boolean }): Promise<ContactInfo[]>;
+    getProperties(): Promise<string[]>;
+  }
+  interface Navigator {
+    contacts?: ContactsManager;
+  }
+}
 
 interface AddressForm {
   street: string;
@@ -40,6 +62,65 @@ export function AddClientDialog({ trigger, onClientCreated }: AddClientDialogPro
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
+
+  // Détection mobile et support Contact Picker
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasContactPicker, setHasContactPicker] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    setHasContactPicker('contacts' in navigator && 'select' in (navigator.contacts || {}));
+  }, []);
+
+  // Fonction pour importer un contact du téléphone
+  const importContact = async () => {
+    if (!navigator.contacts) {
+      setCreateError("L'importation de contacts n'est pas supportée sur ce navigateur.");
+      return;
+    }
+
+    try {
+      const properties = ['name', 'email', 'tel', 'address'];
+      const contacts = await navigator.contacts.select(properties, { multiple: false });
+
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+
+        // Remplir le nom
+        if (contact.name && contact.name.length > 0) {
+          setNewName(contact.name[0]);
+        }
+
+        // Remplir l'email
+        if (contact.email && contact.email.length > 0) {
+          setNewEmail(contact.email[0]);
+        }
+
+        // Remplir le téléphone
+        if (contact.tel && contact.tel.length > 0) {
+          setNewPhone(contact.tel[0]);
+        }
+
+        // Remplir l'adresse si disponible
+        if (contact.address && contact.address.length > 0) {
+          const addr = contact.address[0];
+          const updatedAddresses = [...addresses];
+          updatedAddresses[0] = {
+            ...updatedAddresses[0],
+            street: addr.addressLine?.join(', ') || '',
+            city: addr.city || '',
+            postalCode: addr.postalCode || '',
+          };
+          setAddresses(updatedAddresses);
+        }
+      }
+    } catch (e: any) {
+      // L'utilisateur a annulé ou une erreur s'est produite
+      if (e.name !== 'InvalidStateError') {
+        console.error('Erreur lors de l\'importation du contact:', e);
+      }
+    }
+  };
 
   const addAddress = () => {
     setAddresses([...addresses, { street: '', city: '', postalCode: '', acces: '', hasKey: false }]);
@@ -137,10 +218,26 @@ export function AddClientDialog({ trigger, onClientCreated }: AddClientDialogPro
       </DialogTrigger>
       <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ajouter un nouveau client</DialogTitle>
-          <DialogDescription>
-            Remplissez les informations du client
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Ajouter un nouveau client</DialogTitle>
+              <DialogDescription>
+                Remplissez les informations du client
+              </DialogDescription>
+            </div>
+            {isMobile && hasContactPicker && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={importContact}
+                className="gap-2 text-green-600 border-green-600 hover:bg-green-50"
+              >
+                <UserPlus className="w-4 h-4" />
+                Importer
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         <div className="space-y-4">
           {/* Informations de base */}
