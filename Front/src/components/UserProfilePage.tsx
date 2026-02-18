@@ -175,18 +175,18 @@ export function UserProfilePage({ user, onUpdateUser, onNavigateToSubscription }
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto overflow-x-hidden">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-          <p className="text-gray-500 mt-1">Gérez vos informations personnelles</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mon Profil</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Gérez vos informations personnelles</p>
         </div>
         {/* Bouton Contact Support */}
         <Button
           onClick={() => setIsSupportChatOpen(true)}
           variant="outline"
-          className="relative gap-2"
+          className="relative gap-2 w-full sm:w-auto"
         >
           <MessageCircle className="w-4 h-4" />
           Contacter le support

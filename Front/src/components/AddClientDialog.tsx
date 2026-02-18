@@ -134,7 +134,7 @@ export function AddClientDialog({ trigger, onClientCreated }: AddClientDialogPro
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau client</DialogTitle>
           <DialogDescription>

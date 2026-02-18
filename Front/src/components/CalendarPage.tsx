@@ -337,8 +337,13 @@ function UnscheduledDropZone({ onDrop, children }: UnscheduledDropZoneProps) {
 
 export function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(0);
-  const [currentDayIndex, setCurrentDayIndex] = useState(0); // Pour la navigation mobile
-  const [isMobile, setIsMobile] = useState(false);
+  // Initialiser au jour actuel (convertir: JS dimanche=0 -> notre format lundi=0)
+  const getTodayIndex = () => {
+    const day = new Date().getDay();
+    return day === 0 ? 6 : day - 1; // Dimanche=6, Lundi=0, Mardi=1, etc.
+  };
+  const [currentDayIndex, setCurrentDayIndex] = useState(getTodayIndex()); // Pour la navigation mobile
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true);
@@ -349,7 +354,7 @@ export function CalendarPage() {
   // Détecter si on est en mode mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024);
     };
     
     checkMobile();
@@ -1104,8 +1109,8 @@ export function CalendarPage() {
           </div>
         </div>
 
-          {/* Chantiers à programmer - Version mobile */}
-          {isMobile && unscheduledAppointments.length > 0 && (
+          {/* Chantiers à programmer - Version mobile (toujours visible en bas) */}
+          {isMobile && (
             <div className="mt-6">
               <Collapsible open={isUnscheduledOpen} onOpenChange={setIsUnscheduledOpen}>
                 <UnscheduledDropZone onDrop={handleUnschedule}>
@@ -1117,19 +1122,27 @@ export function CalendarPage() {
                       >
                         <div className="flex items-center gap-2">
                           <CalendarX className="w-5 h-5 text-orange-600" />
-                          <span className="text-gray-900">Chantiers à programmer</span>
-                          <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
-                            {unscheduledAppointments.length}
-                          </span>
+                          <span className="text-gray-900">À programmer</span>
+                          {unscheduledAppointments.length > 0 && (
+                            <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
+                              {unscheduledAppointments.length}
+                            </span>
+                          )}
                         </div>
                         <ChevronsUpDown className="w-4 h-4 text-gray-500" />
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="p-4 pt-0 space-y-3">
-                        {unscheduledAppointments.map((apt) => (
-                          <UnscheduledChantier key={apt.id} appointment={apt} />
-                        ))}
+                        {unscheduledAppointments.length > 0 ? (
+                          unscheduledAppointments.map((apt) => (
+                            <UnscheduledChantier key={apt.id} appointment={apt} />
+                          ))
+                        ) : (
+                          <div className="text-center text-sm text-gray-500 py-4">
+                            Aucun rendez-vous à programmer
+                          </div>
+                        )}
                       </div>
                     </CollapsibleContent>
                   </Card>

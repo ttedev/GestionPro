@@ -186,4 +186,33 @@
 
 html {
   font-size: var(--font-size);
+  overflow-x: hidden;
+  width: 100%;
+  overflow-y: scroll;
+  overscroll-behavior-x: none;
 }
+
+body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+}
+
+/* Empêcher le débordement sur tous les conteneurs principaux */
+#root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-x: none;
+}
+
+/* Fix pour le viewport mobile qui inclut parfois la barre d'URL */
+@supports (height: 100dvh) {
+  html, body, #root {
+    min-height: 100dvh;
+  }
+}
+

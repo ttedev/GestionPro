@@ -41,20 +41,20 @@ function MainLayout({ user, onLogout, onUpdateUser }: { user: User; onLogout: ()
   const currentPage = location.pathname.split('/')[1] || 'dashboard';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar 
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden max-w-full">
+      <Sidebar
         currentPage={currentPage} 
         user={user}
         onLogout={onLogout}
         isMobileOpen={isMobileMenuOpen}
         onMobileClose={() => setIsMobileMenuOpen(false)}
       />
-      <div className="flex-1 flex flex-col min-h-screen">
-        <MobileHeader 
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+        <MobileHeader
           onMenuClick={() => setIsMobileMenuOpen(true)}
           user={user}
         />
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
           {/* Children routes will render here */}
           <Routes>
             <Route path="/" element={<Navigate to={user.status === 'ACTIVE' || user.status === 'ADMIN' ? "/dashboard" : "/profile"} replace />} />

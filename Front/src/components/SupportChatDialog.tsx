@@ -96,7 +96,7 @@ export function SupportChatDialog({ open, onOpenChange, onUnreadCountChange }: S
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[100dvh] sm:h-[600px] max-h-[100dvh] sm:max-h-[90vh] flex flex-col p-4 sm:p-6">
+      <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 !w-full !h-full !max-w-full !max-h-full !rounded-none sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[500px] sm:!h-[600px] sm:!max-w-[500px] sm:!max-h-[90vh] sm:!rounded-lg flex flex-col p-4 pt-12 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-green-600" />
