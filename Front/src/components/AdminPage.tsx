@@ -52,6 +52,24 @@ export function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [usersWithUnread, setUsersWithUnread] = useState<string[]>([]);
 
+  // Responsive breakpoints
+  const getScreenSize = () => {
+    if (typeof window === 'undefined') return 'lg';
+    if (window.innerWidth >= 1024) return 'lg';
+    if (window.innerWidth >= 768) return 'md';
+    return 'sm';
+  };
+
+  const [screenSize, setScreenSize] = useState<'sm' | 'md' | 'lg'>(getScreenSize);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setScreenSize(getScreenSize());
+    };
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Chat dialog state
   const [chatUser, setChatUser] = useState<AdminUser | null>(null);
   const [isChatDialogOpen, setIsChatDialogOpen] = useState(false);
@@ -320,78 +338,92 @@ export function AdminPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12"></TableHead>
-                  <TableHead>Utilisateur</TableHead>
-                  <TableHead className="hidden sm:table-cell">Email</TableHead>
-                  <TableHead className="hidden lg:table-cell">Entreprise</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="hidden md:table-cell">Licence</TableHead>
-                  <TableHead className="hidden md:table-cell">Abonnement</TableHead>
-                  <TableHead className="hidden lg:table-cell">Inscrit le</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className={getStatusRowColor(user.status)}>
-                    <TableCell className="w-12">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenChat(user)}
-                        title="Messages"
-                        className={`p-2 ${usersWithUnread.includes(user.id) ? 'bg-orange-100' : ''}`}
-                      >
-                        <Mail className={`w-5 h-5 ${usersWithUnread.includes(user.id) ? 'text-orange-600' : 'text-gray-500'}`} />
-                        {usersWithUnread.includes(user.id) && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+            {/* Colonnes conditionnelles */}
+            {(() => {
+              const showEmail = screenSize !== 'sm';
+              const showEntreprise = screenSize === 'lg';
+              const showStatut = screenSize !== 'sm';
+              const showLicence = screenSize !== 'sm';
+              const showAbonnement = screenSize !== 'sm';
+              const showInscritLe = screenSize === 'lg';
+
+              return (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Utilisateur</TableHead>
+                      {showEmail && <TableHead>Email</TableHead>}
+                      {showEntreprise && <TableHead>Entreprise</TableHead>}
+                      {showStatut && <TableHead>Statut</TableHead>}
+                      {showLicence && <TableHead>Licence</TableHead>}
+                      {showAbonnement && <TableHead>Abonnement</TableHead>}
+                      {showInscritLe && <TableHead>Inscrit le</TableHead>}
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} className={getStatusRowColor(user.status)}>
+                        <TableCell className="w-12">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenChat(user)}
+                            title="Messages"
+                            className={`p-2 ${usersWithUnread.includes(user.id) ? 'bg-orange-100' : ''}`}
+                          >
+                            <Mail className={`w-5 h-5 ${usersWithUnread.includes(user.id) ? 'text-orange-600' : 'text-gray-500'}`} />
+                            {usersWithUnread.includes(user.id) && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {user.firstName} {user.lastName}
+                            </p>
+                            {!showEmail && <p className="text-xs text-gray-500">{user.email}</p>}
+                          </div>
+                        </TableCell>
+                        {showEmail && <TableCell>{user.email}</TableCell>}
+                        {showEntreprise && <TableCell>{user.company || '—'}</TableCell>}
+                        {showStatut && <TableCell>{getStatusBadge(user.status)}</TableCell>}
+                        {showLicence && (
+                          <TableCell>
+                            {user.endLicenseDate ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <span className={
+                                  new Date(user.endLicenseDate) < new Date()
+                                    ? 'text-red-600'
+                                    : ''
+                                }>
+                                  {formatDate(user.endLicenseDate)}
+                                </span>
+                              </div>
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
                         )}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-gray-500 sm:hidden">{user.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{user.company || '—'}</TableCell>
-                    <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {user.endLicenseDate ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className={
-                            new Date(user.endLicenseDate) < new Date()
-                              ? 'text-red-600'
-                              : ''
-                          }>
-                            {formatDate(user.endLicenseDate)}
-                          </span>
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {user.hasActiveSubscription ? (
-                        <div className="flex items-center gap-1 text-green-600">
-                          <CreditCard className="w-4 h-4" />
-                          <span className="text-sm">Mensuel</span>
-                        </div>
-                      ) : user.stripeCustomerId ? (
-                        <span className="text-sm text-gray-500">One-shot</span>
-                      ) : (
-                        <span className="text-sm text-gray-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">{formatDate(user.createdAt)}</TableCell>
-                    <TableCell>
+                        {showAbonnement && (
+                          <TableCell>
+                            {user.hasActiveSubscription ? (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <CreditCard className="w-4 h-4" />
+                                <span className="text-sm">Mensuel</span>
+                              </div>
+                            ) : user.stripeCustomerId ? (
+                              <span className="text-sm text-gray-500">One-shot</span>
+                            ) : (
+                              <span className="text-sm text-gray-400">—</span>
+                            )}
+                          </TableCell>
+                        )}
+                        {showInscritLe && <TableCell>{formatDate(user.createdAt)}</TableCell>}
+                        <TableCell>
                       <div className="flex items-center justify-end gap-1 sm:gap-2">
                         {user.status !== 'ADMIN' && (
                           <>
@@ -436,11 +468,13 @@ export function AdminPage() {
                           </Button>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              );
+            })()}
           </div>
         </CardContent>
       </Card>

@@ -209,6 +209,34 @@ body {
   overscroll-behavior-x: none;
 }
 
+/* Classes responsive pour les cellules de tableau */
+@media (min-width: 640px) {
+  .sm\:table-cell {
+    display: table-cell !important;
+  }
+  .sm\:\!table-cell {
+    display: table-cell !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:table-cell {
+    display: table-cell !important;
+  }
+  .md\:\!table-cell {
+    display: table-cell !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:table-cell {
+    display: table-cell !important;
+  }
+  .lg\:\!table-cell {
+    display: table-cell !important;
+  }
+}
+
 /* Fix pour le viewport mobile qui inclut parfois la barre d'URL */
 @supports (height: 100dvh) {
   html, body, #root {
