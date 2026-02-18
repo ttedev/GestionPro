@@ -192,6 +192,23 @@ export function AdminPage() {
     }
   };
 
+  const getStatusRowColor = (status: UserStatus) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-50';
+      case 'PENDING':
+        return 'bg-yellow-50';
+      case 'INACTIVE':
+        return 'bg-gray-50';
+      case 'SUSPENDED':
+        return 'bg-red-50';
+      case 'ADMIN':
+        return 'bg-purple-50';
+      default:
+        return '';
+    }
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -306,30 +323,46 @@ export function AdminPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>Utilisateur</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Entreprise</TableHead>
+                  <TableHead className="hidden sm:table-cell">Email</TableHead>
+                  <TableHead className="hidden lg:table-cell">Entreprise</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead>Licence</TableHead>
-                  <TableHead>Abonnement</TableHead>
-                  <TableHead>Inscrit le</TableHead>
+                  <TableHead className="hidden md:table-cell">Licence</TableHead>
+                  <TableHead className="hidden md:table-cell">Abonnement</TableHead>
+                  <TableHead className="hidden lg:table-cell">Inscrit le</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className={getStatusRowColor(user.status)}>
+                    <TableCell className="w-12">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenChat(user)}
+                        title="Messages"
+                        className={`p-2 ${usersWithUnread.includes(user.id) ? 'bg-orange-100' : ''}`}
+                      >
+                        <Mail className={`w-5 h-5 ${usersWithUnread.includes(user.id) ? 'text-orange-600' : 'text-gray-500'}`} />
+                        {usersWithUnread.includes(user.id) && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+                        )}
+                      </Button>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium">
                           {user.firstName} {user.lastName}
                         </p>
+                        <p className="text-xs text-gray-500 sm:hidden">{user.email}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.company || '—'}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{user.company || '—'}</TableCell>
                     <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {user.endLicenseDate ? (
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4 text-gray-400" />
@@ -345,7 +378,7 @@ export function AdminPage() {
                         '—'
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {user.hasActiveSubscription ? (
                         <div className="flex items-center gap-1 text-green-600">
                           <CreditCard className="w-4 h-4" />
@@ -357,22 +390,9 @@ export function AdminPage() {
                         <span className="text-sm text-gray-400">—</span>
                       )}
                     </TableCell>
-                    <TableCell>{formatDate(user.createdAt)}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{formatDate(user.createdAt)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Bouton Message */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenChat(user)}
-                          title="Messages"
-                          className={usersWithUnread.includes(user.id) ? 'border-orange-400 bg-orange-50' : ''}
-                        >
-                          <Mail className={`w-4 h-4 ${usersWithUnread.includes(user.id) ? 'text-orange-600' : 'text-gray-600'}`} />
-                          {usersWithUnread.includes(user.id) && (
-                            <span className="ml-1 w-2 h-2 bg-orange-500 rounded-full"></span>
-                          )}
-                        </Button>
+                      <div className="flex items-center justify-end gap-1 sm:gap-2">
                         {user.status !== 'ADMIN' && (
                           <>
                             {user.status !== 'ACTIVE' && (
