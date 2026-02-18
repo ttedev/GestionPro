@@ -34,7 +34,10 @@ public class ClientsController {
   @GetMapping
   public List<ClientDTO> list(@RequestParam(required = false) String search){
     var owner = securityUtil.getCurrentUser();
-    return clientRepository.findByOwnerAndSearch(owner, search).stream().map(MappingUtil::toClientDTO).toList();
+    return clientRepository.findByOwnerAndSearch(owner, search).stream()
+        .map(MappingUtil::toClientDTO)
+        .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
+        .toList();
   }
 
   @GetMapping("/{id}")

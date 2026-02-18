@@ -21,7 +21,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
   const [description, setDescription] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string>(clientId || '');
   const [location, setLocation] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [durationHoursInput, setDurationHoursInput] = useState('1');
   const [clients, setClients] = useState<Client[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState(false);
@@ -89,7 +89,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
         })) : [],
         startDate: startDate || undefined,
         location: location || undefined,
-        dureeEnMinutes: durationMinutes,
+        dureeEnMinutes: Math.round((parseFloat(durationHoursInput.replace(',', '.')) || 1) * 60),
         premierMois: isRecurring ? startMonth : undefined,
         dureeMois: isRecurring ? durationMonths : undefined,
       });
@@ -130,8 +130,13 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Durée unitaire (minutes)</Label>
-          <Input type="number" min={15} step={15} value={durationMinutes} onChange={e => setDurationMinutes(parseInt(e.target.value)||15)} />
+          <Label>Durée unitaire (heures)</Label>
+          <Input type="text" inputMode="decimal" value={durationHoursInput} onChange={e => {
+            const val = e.target.value.replace(',', '.');
+            if (val === '' || /^\d*\.?\d*$/.test(val)) {
+              setDurationHoursInput(e.target.value);
+            }
+          }} placeholder="Ex: 2.5 ou 2,5 pour 2h30" />
         </div>
       </div>
       <div>
@@ -166,7 +171,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
             </div>
             <div>
               <Label>Durée (mois)</Label>
-              <Input type="number" min={1} max={24} value={durationMonths} onChange={e => setDurationMonths(parseInt(e.target.value)||1)} />
+              <Input type="number" min={0} max={24} value={durationMonths} onChange={e => setDurationMonths(parseInt(e.target.value)||1)} />
             </div>
           </div>
           <div className="border rounded-lg p-4 space-y-3">

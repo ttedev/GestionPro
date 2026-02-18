@@ -2,10 +2,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Plus, Search, Mail, Phone, MapPin, MoreVertical, Key } from 'lucide-react';
+import { Plus, Search, Mail, Phone, MapPin, MoreVertical, Key, Trash2, UserCheck, UserX } from 'lucide-react';
 import { clientsAPI, type Client } from '../api/apiClient';
 import { AddClientDialog } from './AddClientDialog';
 import { formatPhone } from '../utils/formatters';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 interface ClientsPageProps {
   onSelectClient: (clientId: string) => void;
@@ -141,9 +147,54 @@ export function ClientsPage({ onSelectClient }: ClientsPageProps) {
                     </span>
                   </div>
                 </div>
-                <button className="p-2 hover:bg-gray-100 rounded-lg" onClick={(e) => { e.stopPropagation(); }}>
-                  <MoreVertical className="w-5 h-5 text-gray-400" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-2 hover:bg-gray-100 rounded-lg" onClick={(e) => { e.stopPropagation(); }}>
+                      <MoreVertical className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        try {
+                          const newStatus = client.status === 'actif' ? 'inactif' : 'actif';
+                          await clientsAPI.update(client.id, { status: newStatus });
+                          fetchClients(searchQuery);
+                        } catch (e: any) {
+                          setError(e.message || 'Erreur lors de la mise à jour du statut');
+                        }
+                      }}
+                    >
+                      {client.status === 'actif' ? (
+                        <>
+                          <UserX className="w-4 h-4 mr-2" />
+                          Désactiver
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Activer
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={async () => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer le client "${client.name}" ?`)) {
+                          try {
+                            await clientsAPI.delete(client.id);
+                            fetchClients(searchQuery);
+                          } catch (e: any) {
+                            setError(e.message || 'Erreur lors de la suppression du client');
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             );
           })}

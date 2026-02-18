@@ -109,7 +109,7 @@ export function AdminChatDialog({ open, onOpenChange, user, onMessagesRead }: Ad
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] h-[600px] flex flex-col">
+      <DialogContent className="sm:max-w-[500px] h-[100dvh] sm:h-[600px] max-h-[100dvh] sm:max-h-[90vh] flex flex-col p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -126,7 +126,7 @@ export function AdminChatDialog({ open, onOpenChange, user, onMessagesRead }: Ad
         </DialogHeader>
 
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto border rounded-lg p-4 bg-gray-50 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto border rounded-lg p-4 bg-gray-50 space-y-3">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
@@ -175,7 +175,7 @@ export function AdminChatDialog({ open, onOpenChange, user, onMessagesRead }: Ad
         </div>
 
         {/* Input area */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-2 flex-shrink-0">
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
