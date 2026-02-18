@@ -23,8 +23,17 @@ export function SupportChatDialog({ open, onOpenChange, onUnreadCountChange }: S
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,7 +105,27 @@ export function SupportChatDialog({ open, onOpenChange, onUnreadCountChange }: S
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="inset-0 w-full h-full max-w-full max-h-full rounded-none p-4 pt-12 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-[600px] sm:max-w-[500px] sm:max-h-[90vh] sm:rounded-lg sm:p-6 flex flex-col">
+      <DialogContent
+        className="flex flex-col p-4 pt-12 sm:p-6"
+        style={isMobile ? {
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          borderRadius: 0,
+          transform: 'none',
+        } : {
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '500px',
+          height: '600px',
+          maxWidth: '500px',
+          maxHeight: '90vh',
+          borderRadius: '0.5rem',
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-green-600" />

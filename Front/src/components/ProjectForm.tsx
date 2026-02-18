@@ -25,7 +25,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState(false);
-  const [durationMonths, setDurationMonths] = useState(3);
+  const [durationMonthsInput, setDurationMonthsInput] = useState('3');
   const [startMonth, setStartMonth] = useState<string>('');
   const [plans, setPlans] = useState<MonthlyPlanItem[]>([]);
   const [status, setStatus] = useState<BackendProjectStatus>('en_cours');
@@ -34,6 +34,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
 
   useEffect(() => {
     if (isRecurring) {
+      const durationMonths = parseInt(durationMonthsInput) || 1;
       const base = startMonth ? new Date(startMonth + '-01') : new Date();
       const newPlans: MonthlyPlanItem[] = [];
       for (let i = 0; i < durationMonths; i++) {
@@ -50,7 +51,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
       setPlans([]);
     }
 
-  }, [isRecurring, durationMonths, startMonth]);
+  }, [isRecurring, durationMonthsInput, startMonth]);
 
 
     useEffect(() => {
@@ -91,7 +92,7 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
         location: location || undefined,
         dureeEnMinutes: Math.round((parseFloat(durationHoursInput.replace(',', '.')) || 1) * 60),
         premierMois: isRecurring ? startMonth : undefined,
-        dureeMois: isRecurring ? durationMonths : undefined,
+        dureeMois: isRecurring ? (parseInt(durationMonthsInput) || 1) : undefined,
       });
 
       onCreated?.(project.id);
@@ -171,7 +172,18 @@ export function ProjectForm({ clientId, onCreated }: ProjectFormProps) {
             </div>
             <div>
               <Label>Durée (mois)</Label>
-              <Input type="number" min={0} max={24} value={durationMonths} onChange={e => setDurationMonths(parseInt(e.target.value)||1)} />
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={durationMonthsInput}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d{0,2}$/.test(val)) {
+                    setDurationMonthsInput(val);
+                  }
+                }}
+                placeholder="3"
+              />
             </div>
           </div>
           <div className="border rounded-lg p-4 space-y-3">

@@ -49,10 +49,17 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
-  // Vérifier si className contient des styles de positionnement personnalisés
-  const hasCustomPosition = className?.includes('inset-') || className?.includes('top-') || className?.includes('left-');
+  // Si la classe contient dialog-fullscreen-mobile, ne pas appliquer les styles par défaut
+  const isFullscreen = className?.includes('dialog-fullscreen-mobile');
+
+  const defaultStyle: React.CSSProperties = isFullscreen ? {} : {
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+  };
 
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -60,11 +67,14 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed z-50 gap-4 border shadow-lg duration-200 overflow-y-auto box-border",
-          // Styles par défaut seulement si pas de positionnement personnalisé
-          !hasCustomPosition && "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] rounded-lg p-6",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed z-50 border shadow-lg duration-200 overflow-y-auto box-border",
+          // Taille par défaut
+          "w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)]",
+          // Style par défaut
+          "rounded-lg p-6 gap-4",
           className,
         )}
+        style={{ ...defaultStyle, ...style }}
         {...props}
       >
         {children}
