@@ -130,6 +130,7 @@ export function AddClientDialog({ trigger, onClientCreated }: AddClientDialogPro
       if (!isOpen) {
         resetForm();
       }
+
     }}>
       <DialogTrigger asChild>
         {trigger}

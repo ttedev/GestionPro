@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useEffect } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog@1.1.6";
 import { XIcon } from "lucide-react@0.487.0";
 
@@ -52,10 +53,25 @@ function DialogContent({
   style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
-  // Si la classe contient dialog-fullscreen-mobile, ne pas appliquer les styles par défaut
-  const isFullscreen = className?.includes('dialog-fullscreen-mobile');
+  const [isMobile, setIsMobile] = useState(false);
 
-  const defaultStyle: React.CSSProperties = isFullscreen ? {} : {
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const defaultStyle: React.CSSProperties = isMobile ? {
+    top: 0,
+    left: 0,
+    transform: 'none',
+    width: '100%',
+    maxWidth: '100%',
+    height: 'auto',
+    maxHeight: '100%',
+    borderRadius: 0,
+  } : {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
@@ -68,10 +84,10 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed z-50 border shadow-lg duration-200 overflow-y-auto box-border",
-          // Taille par défaut
-          "w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)]",
+          // Taille par défaut (desktop)
+          !isMobile && "w-[calc(100%-2rem)] max-w-lg max-h-[calc(100%-2rem)] rounded-lg",
           // Style par défaut
-          "rounded-lg p-6 gap-4",
+          "p-6 gap-4",
           className,
         )}
         style={{ ...defaultStyle, ...style }}
